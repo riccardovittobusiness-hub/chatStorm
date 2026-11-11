@@ -1,7 +1,7 @@
 #!/bin/zsh
-# Avvio di ClaudioStorm: doppio clic su questo file dal Finder.
+# Avvio di chatStorm: doppio clic su questo file dal Finder.
 cd "$(dirname "$0")"
-echo "== ClaudioStorm =="
+echo "== chatStorm =="
 
 if ! command -v node >/dev/null 2>&1; then
   echo "Node.js non trovato. Installalo da https://nodejs.org (versione 22 o più recente) e riapri questo file."

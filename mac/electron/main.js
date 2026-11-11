@@ -1,11 +1,11 @@
-// ClaudioStorm come app desktop: avvia il server locale, apre una finestra nativa, lo spegne all'uscita.
+// chatStorm come app desktop: avvia il server locale, apre una finestra nativa, lo spegne all'uscita.
 const { app, BrowserWindow, shell, dialog, nativeImage } = require('electron');
 const { spawn, execFileSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const http = require('http');
 
-app.setName('ClaudioStorm');
+app.setName('chatStorm');
 const HOME = app.getPath('home');
 const URL = 'http://localhost:4317';
 
@@ -89,7 +89,7 @@ async function ensureServer() {
 function createWindow() {
   win = new BrowserWindow({
     width: 1440, height: 900, minWidth: 980, minHeight: 640,
-    title: 'ClaudioStorm',
+    title: 'chatStorm',
     backgroundColor: '#F6F7FF',
     titleBarStyle: 'hiddenInset',
     trafficLightPosition: { x: 16, y: 18 },
@@ -111,7 +111,7 @@ app.whenReady().then(async () => {
     await ensureServer();
     createWindow();
   } catch (e) {
-    dialog.showErrorBox('ClaudioStorm non è partito', String(e.message || e));
+    dialog.showErrorBox('chatStorm non è partito', String(e.message || e));
     app.quit();
   }
 });

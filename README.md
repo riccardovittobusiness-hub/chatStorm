@@ -1,8 +1,8 @@
-# ClaudioStorm
+# chatStorm
 
 **Il brainstorming con Claude, visto dall'alto.**
 
-Quando si ragiona su un'idea con un assistente AI, le conversazioni si accumulano in un elenco verticale e il quadro d'insieme si perde: quale chat approfondiva cosa, dove era nata un'alternativa, quali idee si contraddicono. ClaudioStorm trasforma ogni conversazione in un oggetto da disporre nello spazio.
+Quando si ragiona su un'idea con un assistente AI, le conversazioni si accumulano in un elenco verticale e il quadro d'insieme si perde: quale chat approfondiva cosa, dove era nata un'alternativa, quali idee si contraddicono. chatStorm trasforma ogni conversazione in un oggetto da disporre nello spazio.
 
 Ogni chat diventa un'**icona** sulla lavagna: dopo i primi messaggi Claude le dà un titolo, ne scrive un riassunto e disegna un'icona che ne rappresenta il contenuto. In alternativa puoi usare badge con lettere, numeri o simboli, scegliendo forma e colore. Le icone si trascinano come sul desktop, si ingrandiscono, si allineano e si collegano con frecce etichettate ("approfondisce", "contraddice", "dipende da"). Accanto alle chat puoi aggiungere note, testi e riquadri tematici, come su una lavagna di Miro.
 
@@ -27,7 +27,7 @@ L'app gira sul tuo computer e usa il tuo abbonamento Claude tramite Claude Code,
 
 ## Avvio
 **App desktop per Mac:** apri la cartella `mac` e fai doppio clic su **`crea-app.command`** (una volta sola).
-Scarica Electron, costruisce **ClaudioStorm.app** con la sua icona e la installa nella cartella Applicazioni del tuo utente
+Scarica Electron, costruisce **chatStorm.app** con la sua icona e la installa nella cartella Applicazioni del tuo utente
 (la trovi in Launchpad e con Spotlight; trascinala nel Dock). L'app ha una finestra sua, avvia il server quando la apri
 e lo spegne quando la chiudi; i link esterni si aprono nel browser. Dopo un aggiornamento del codice basta riaprirla.
 Se nel frattempo è cambiata l'app desktop stessa (cartella `mac/electron`), riesegui `crea-app.command`.
@@ -121,7 +121,7 @@ server/ai.js       riassunto → prompt icona, collegamenti, temi, sintesi, cont
 server/images.js   Pollinations / Cloudflare
 server/svg.js      pulizia degli SVG disegnati da Claude
 mac/electron/      app desktop (Electron)
-mac/crea-app.command  costruisce e installa ClaudioStorm.app
+mac/crea-app.command  costruisce e installa chatStorm.app
 server/db.js       SQLite (node:sqlite)
 public/            interfaccia (JavaScript puro, nessuna build)
 ```

@@ -292,5 +292,5 @@ createServer(async (req, res) => {
     else res.end();
   }
 }).listen(PORT, '127.0.0.1', () => {
-  console.log(`\n  ClaudioStorm  →  http://localhost:${PORT}${MOCK ? '   (modalità simulata)' : ''}\n`);
+  console.log(`\n  chatStorm  →  http://localhost:${PORT}${MOCK ? '   (modalità simulata)' : ''}\n`);
 });

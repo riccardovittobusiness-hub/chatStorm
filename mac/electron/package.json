@@ -1,8 +1,8 @@
 {
-  "name": "claudiostorm",
-  "productName": "ClaudioStorm",
+  "name": "chatstorm",
+  "productName": "chatStorm",
   "version": "0.3.0",
-  "description": "ClaudioStorm: lavagna di brainstorming con Claude",
+  "description": "chatStorm: lavagna di brainstorming con Claude",
   "main": "main.js",
   "private": true,
   "devDependencies": {
