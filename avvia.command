@@ -38,7 +38,7 @@ if ! claude auth status >/dev/null 2>&1 && [ ! -f "$HOME/.cc-canvas-login-done" 
   touch "$HOME/.cc-canvas-login-done"
 fi
 
-if [ ! -d node_modules/@anthropic-ai/claude-agent-sdk ]; then
+if [ ! -d node_modules/@anthropic-ai/claude-agent-sdk ] || [ ! -d node_modules/@openai/codex-sdk ]; then
   echo "Installo le dipendenze (solo la prima volta)…"
   npm install || { read -k1 "?Installazione non riuscita. Premi un tasto per chiudere"; exit 1; }
 fi

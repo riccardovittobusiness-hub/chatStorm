@@ -12,6 +12,13 @@ export class ChatPanel {
     this.chatId = null; this.streaming = false; this.live = null;
     this.el = $('chat-panel'); this.list = $('cp-messages'); this.input = $('cp-input');
     $('cp-close').onclick = () => this.close();
+    $('cp-expand').onclick = () => this.toggleFull();
+    $('cp-provider').onclick = async () => {
+      const c = this.o.chats.get(this.chatId);
+      if (!c || c.msg_count > 0 || this.streaming) return;
+      await this.patch({ provider: c.provider === 'codex' ? 'claude' : 'codex' });
+      this.input.focus();
+    };
     $('cp-form').onsubmit = (e) => { e.preventDefault(); this.streaming ? this.stop() : this.send(); };
     this.input.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); if (!this.streaming) this.send(); }
@@ -145,7 +152,14 @@ export class ChatPanel {
     this.setStreaming(!!busy);
   }
   /** La risposta continua in background: chiudere il pannello non la interrompe. */
+  toggleFull(on = !document.body.classList.contains('chat-full')) {
+    document.body.classList.toggle('chat-full', on);
+    $('cp-expand').textContent = on ? '⤡' : '⤢';
+    $('cp-expand').title = on ? 'Torna alla mappa (Esc)' : 'Espandi a tutto schermo';
+    if (!on) setTimeout(() => this.o.onLayout?.(), 0);
+  }
   close() {
+    this.toggleFull(false);
     this.chatId = null;
     this.live = null;
     this.el.hidden = true;
@@ -159,6 +173,13 @@ export class ChatPanel {
     $('cp-icon').innerHTML = iconHTML(c) + (gen ? '<div class="spinner" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.5)"><div class="spin"></div></div>' : '');
     if (document.activeElement !== $('cp-title')) $('cp-title').value = c.title;
     $('cp-neighbors').checked = !!c.use_neighbor_context;
+    const pv = $('cp-provider'), codex = c.provider === 'codex';
+    pv.textContent = codex ? 'ChatGPT' : 'Claude';
+    pv.className = 'provider ' + (codex ? 'codex' : 'claude');
+    pv.disabled = c.msg_count > 0;
+    pv.title = c.msg_count > 0 ? `Risponde ${codex ? 'ChatGPT (Codex)' : 'Claude'}. Il modello si sceglie prima del primo messaggio.`
+      : `Risponde ${codex ? 'ChatGPT (Codex)' : 'Claude'}. Clic per passare a ${codex ? 'Claude' : 'ChatGPT'}.`;
+    this.input.placeholder = `Scrivi a ${codex ? 'ChatGPT' : 'Claude'}. Invio per inviare, Shift+Invio per andare a capo.`;
     $('cp-summary').textContent = c.summary || 'Non ancora disponibile: arriva dopo il primo scambio.';
     $('cp-keywords').textContent = c.keywords || '—';
     $('cp-prompt').textContent = c.image_prompt || '—';

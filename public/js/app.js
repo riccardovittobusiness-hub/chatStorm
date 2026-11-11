@@ -101,6 +101,7 @@ const panel = new ChatPanel({
   onChatUpdated: (c) => chatUpdated(c),
   onFork: (id) => forkChat(id),
   onDelete: (id) => deleteChats([id]),
+  onLayout: () => board.applyView(),
 });
 
 const overview = new Overview({
@@ -126,8 +127,8 @@ function chatUpdated(c) {
 }
 
 // ---------- Chat ----------
-async function newChat(at) {
-  const chat = await api.createChat();
+async function newChat(at, provider) {
+  const chat = await api.createChat(provider ? { provider } : {});
   chats.set(chat.id, chat);
   const it = board.addChatItem(chat.id, at || board.visibleCenter());
   await panel.open(chat.id);
@@ -411,7 +412,7 @@ function renderChatList() {
     const li = document.createElement('li');
     li.className = panel.chatId === c.id ? 'open' : '';
     li.title = c.summary || '';
-    li.innerHTML = `<div class="thumb">${iconHTML(c)}</div><div class="t"><div></div><small>${busyChats.has(c.id) ? '<span class="busy-text">Claude sta rispondendo…</span>' : c.msg_count === 1 ? '1 messaggio' : `${c.msg_count} messaggi`}</small></div>
+    li.innerHTML = `<div class="thumb">${iconHTML(c)}</div><div class="t"><div></div><small>${busyChats.has(c.id) ? `<span class="busy-text">${c.provider === 'codex' ? 'ChatGPT' : 'Claude'} sta rispondendo…</span>` : (c.provider === 'codex' ? 'ChatGPT, ' : '') + (c.msg_count === 1 ? '1 messaggio' : `${c.msg_count} messaggi`)}</small></div>
       <button class="del" title="Elimina la chat">🗑</button>`;
     li.querySelector('.t div').textContent = c.title;
     li.onclick = (e) => {
@@ -442,6 +443,14 @@ async function openSettings() {
   }
   $('test-result').textContent = '';
   updateProviderFields();
+  api.providers().then(p => {
+    const el = $('codex-status'), c = p.codex;
+    el.className = 'status ' + (c.installed && c.loggedIn ? 'ok' : 'warn');
+    el.textContent = c.installing ? 'ChatGPT (Codex): installazione del supporto in corso…'
+      : !c.loggedIn ? 'ChatGPT (Codex): non risulti collegato. Apri l\'app Codex e accedi con il tuo account ChatGPT.'
+      : c.installed ? 'ChatGPT (Codex): pronto, collegato al tuo account ChatGPT.'
+      : 'ChatGPT (Codex): collegato. Il supporto verrà installato al primo utilizzo (serve qualche secondo).';
+  }).catch(() => {});
   $('settings-dialog').showModal();
 }
 function readSettingsForm() {
@@ -478,6 +487,7 @@ function wire() {
 
   document.querySelectorAll('[data-tool]').forEach(b => { b.onclick = () => board.setTool(b.dataset.tool); });
   $('add-chat').onclick = () => newChat();
+  document.querySelectorAll('[data-new-chat]').forEach(b => { b.onclick = () => { closeMenus(); newChat(null, b.dataset.newChat); }; });
   $('add-note').onclick = () => board.addItem('note', board.visibleCenter());
   $('add-text').onclick = () => board.addItem('text', board.visibleCenter());
   $('add-frame').onclick = () => {
@@ -513,7 +523,7 @@ function wire() {
     download(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }), fileName('json'));
   };
 
-  document.querySelectorAll('.dropdown > button').forEach(b => {
+  document.querySelectorAll('.dropdown > button:not(#add-chat)').forEach(b => {
     b.onclick = (e) => { e.stopPropagation(); const d = b.parentNode; const open = d.classList.contains('open'); closeMenus(); d.classList.toggle('open', !open); };
   });
   document.addEventListener('pointerdown', (e) => { if (!e.target.closest('.dropdown')) closeMenus(); });
@@ -539,6 +549,7 @@ function wire() {
     if (overview.isOpen && !document.querySelector('dialog[open]')) { if (overview.onKey(e)) e.preventDefault(); return; }
     const t = e.target;
     const typing = t.closest?.('input, textarea, [contenteditable="true"]') || document.querySelector('dialog[open]');
+    if (e.key === 'Escape' && document.body.classList.contains('chat-full') && !document.querySelector('dialog[open]')) { panel.toggleFull(false); return; }
     if (e.key === 'Escape' && !typing) {
       if (board.sel.size || board.selEdge) board.setSelection([]);
       else if (!panel.el.hidden) panel.close();

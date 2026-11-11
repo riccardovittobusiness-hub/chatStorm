@@ -181,7 +181,7 @@ export class Board {
       Object.assign(el.style, { left: it.x + 'px', top: it.y + 'px', width: b.w + 'px', height: it.type === 'text' ? 'auto' : b.h + 'px', zIndex: idx });
       if (this.editing?.id === it.id) return;
       const chat = it.type === 'chat' ? this.o.getChat(it.chatId) : null;
-      const key = JSON.stringify([it.type, it.text, it.color, chat?.title, chat?.icon_path, chat?.icon_status, chat?.msg_count, chat?.icon_mode, chat?.badge]);
+      const key = JSON.stringify([it.type, it.text, it.color, chat?.title, chat?.icon_path, chat?.icon_status, chat?.msg_count, chat?.icon_mode, chat?.badge, chat?.provider]);
       if (el.dataset.key === key) return;
       el.dataset.key = key;
       el.innerHTML = this.itemHTML(it, chat);
@@ -208,7 +208,8 @@ export class Board {
     if (it.type === 'chat') {
       const spinner = chat?.icon_status === 'generating' ? '<div class="spinner"><div class="spin"></div></div>' : '';
       const badge = chat?.msg_count ? `<div class="badge">${chat.msg_count}</div>` : '';
-      return `<div class="icon">${chat ? iconHTML(chat, it.chatId) : '<div class="initials" style="background:#999">?</div>'}${spinner}</div>${badge}
+      const prov = chat?.provider === 'codex' ? '<div class="prov" title="Risponde ChatGPT (Codex)">GPT</div>' : '';
+      return `<div class="icon">${chat ? iconHTML(chat, it.chatId) : '<div class="initials" style="background:#999">?</div>'}${spinner}</div>${badge}${prov}
         <div class="label">${escHTML(chat?.title || 'Chat eliminata')}</div>${handles}${resize}`;
     }
     if (it.type === 'note' || it.type === 'text') {

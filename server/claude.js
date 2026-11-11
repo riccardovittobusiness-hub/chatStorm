@@ -1,6 +1,7 @@
 // Ponte verso Claude tramite l'Agent SDK (usa il login di Claude Code sul tuo computer).
 // Con --mock o se l'SDK non è installato, risponde con testo simulato: utile per provare l'interfaccia.
 import { DATA_DIR } from './db.js';
+import { codexStream, codexOneShot } from './codex.js';
 
 let sdk = null;
 export let MOCK = process.argv.includes('--mock') || process.env.CANVAS_MOCK === '1';
@@ -22,7 +23,11 @@ Preferisci risposte strutturate e brevi; usa elenchi quando aiutano. Rispondi in
  * Chat in streaming.
  * @returns {Promise<{text: string, sessionId: string|null}>}
  */
-export async function streamChat({ prompt, sessionId, forkFromSession, extraSystem, settings, onDelta, signal }) {
+export async function streamChat({ provider = 'claude', prompt, sessionId, forkFromSession, extraSystem, settings, onDelta, signal }) {
+  if (provider === 'codex') {
+    if (MOCK) return mockStream('[Codex] ' + prompt, extraSystem, onDelta, signal);
+    return codexStream({ prompt, threadId: sessionId, system: BASE_SYSTEM(settings.language), extraSystem, onDelta, signal, settings });
+  }
   const system = [BASE_SYSTEM(settings.language), extraSystem].filter(Boolean).join('\n\n');
   if (MOCK) return mockStream(prompt, extraSystem, onDelta, signal);
 
@@ -74,6 +79,7 @@ export async function streamChat({ prompt, sessionId, forkFromSession, extraSyst
 /** Chiamata singola senza strumenti né sessione, per riassunti e strumenti della mappa. */
 export async function oneShot(prompt, settings, system = 'Rispondi solo con JSON valido, senza testo prima o dopo.') {
   if (MOCK) return mockOneShot(prompt);
+  if (settings.utilityProvider === 'codex') return codexOneShot(prompt, settings, system);
   const options = { systemPrompt: system, tools: [], maxTurns: 1, settingSources: [], persistSession: false, cwd: DATA_DIR };
   if (settings.utilityModel) options.model = settings.utilityModel;
   let out = '';

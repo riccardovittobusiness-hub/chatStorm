@@ -47,9 +47,19 @@ Apri **http://localhost:4317**. Tieni aperta la finestra del Terminale finché u
 
 Per provare l'interfaccia senza usare Claude: `npm run mock` (risposte e icone simulate).
 
+## Claude e ChatGPT (Codex)
+Ogni chat può usare **Claude** (tramite Claude Code) o **ChatGPT** (tramite Codex di OpenAI), entrambi con il tuo abbonamento.
+- Il modello si sceglie per ogni chat: menu ▾ accanto a **Chat** nella barra, oppure il pulsante **Claude / ChatGPT**
+  in alto nel pannello chat (prima del primo messaggio). Le chat di ChatGPT hanno il segno **GPT** sull'icona.
+- In ⚙ Impostazioni → Modelli scegli il modello predefinito per le nuove chat e quello per riassunti, icone e strumenti della mappa.
+- Per ChatGPT serve aver fatto l'accesso a Codex con il tuo account ChatGPT (per esempio nell'app Codex). Il supporto Codex
+  (`@openai/codex-sdk`) viene installato da `avvia.command`, o automaticamente al primo utilizzo.
+- Codex lavora in una cartella vuota in sola lettura (`data/codex-workspace`): non vede l'archivio delle chat.
+- "Dirama" su una chat di ChatGPT crea una nuova chat che riceve la conversazione come contesto.
+
 ## Icone delle chat
 Si sceglie in ⚙ **Impostazioni → Icone delle chat**:
-- **Disegnate da Claude** (predefinito): dopo il primo scambio Claude riassume la chat e disegna un'icona vettoriale (SVG)
+- **Disegnate da Claude** (predefinito): dopo il primo scambio il modello scelto per gli strumenti (Claude o ChatGPT) riassume la chat e disegna un'icona vettoriale (SVG)
   nei toni del blu. Nessun servizio esterno: usa il tuo abbonamento. L'SVG viene ripulito da script e risorse esterne.
 - **Badge standard**: lettere, numero o simbolo, con forma (arrotondato, cerchio, quadrato, esagono, rombo), colore e stile
   (sfumato o pieno) modificabili.
@@ -63,7 +73,7 @@ Con più chat selezionate: **#** le numera in ordine di selezione, **Aa** mette 
 - **Vista d'insieme** (tasto **M**, pulsante ⧉ o clic sul nome della mappa in basso): tutte le mappe si dispongono su un anello 3D con l'anteprima del contenuto. Trascina o usa le frecce per farle girare, clic per entrare, scheda ＋ per crearne una nuova.
 - **＋** crea una mappa e ne apre subito la rinomina. Doppio clic sul nome (o ✎) per rinominarla, 🗑 per eliminarla dopo una conferma.
 - Eliminare una mappa elimina anche le chat che contiene.
-- Il pannello a sinistra mostra solo le chat della mappa aperta. Eliminare una chat (dal pannello, dalla mappa con Canc o dal pannello chat)
+- Il pannello a sinistra mostra solo le chat della mappa aperta. Il pulsante ⤢ nel pannello chat la espande a tutto schermo (Esc per tornare alla mappa). Eliminare una chat (dal pannello, dalla mappa con Canc o dal pannello chat)
   chiede conferma e cancella anche i messaggi.
 - Le chat create con la prima versione che non stavano su nessuna mappa vengono raccolte nella mappa "Chat recuperate".
 
@@ -93,7 +103,8 @@ Premi `?` nell'app per l'elenco delle scorciatoie.
 ## Struttura
 ```
 server/index.js    server HTTP, API, streaming
-server/claude.js   ponte con l'Agent SDK (+ modalità simulata)
+server/claude.js   ponte con l'Agent SDK di Claude (+ modalità simulata)
+server/codex.js    ponte con il Codex SDK di OpenAI (ChatGPT)
 server/ai.js       riassunto → prompt icona, collegamenti, temi, sintesi, contesto dai collegati
 server/images.js   Pollinations / Cloudflare
 server/svg.js      pulizia degli SVG disegnati da Claude
