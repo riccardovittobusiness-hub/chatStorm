@@ -79,7 +79,8 @@ export const DEFAULT_SETTINGS = {
   autoIcon: 'true',                     // genera l'icona dopo il primo scambio
   resummarizeEvery: '6',                // aggiorna il riassunto ogni N messaggi
   webTools: 'true',                     // WebSearch/WebFetch nelle chat
-  language: 'italiano',
+  language: 'italiano',                 // lingua delle risposte (segue uiLang)
+  uiLang: 'it',                         // lingua dell'interfaccia: 'it' | 'en'
 };
 
 export function getSettings() {
@@ -88,7 +89,15 @@ export function getSettings() {
   for (const r of rows) s[r.key] = r.value;
   return s;
 }
+// Testi creati dal server, nella lingua dell'interfaccia
+const L = {
+  'Nuova chat': 'New chat', 'La mia prima mappa': 'My first map', 'Chat recuperate': 'Recovered chats',
+  'Sintesi di idee': 'Merged ideas', 'Nuova mappa': 'New map',
+};
+export const tr = (s) => (getSettings().uiLang === 'en' && L[s]) || s;
+
 export function saveSettings(patch) {
+  if (patch.uiLang) patch.language = patch.uiLang === 'en' ? 'English' : 'italiano';
   const stmt = db.prepare('INSERT INTO settings(key, value) VALUES(?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value');
   for (const [k, v] of Object.entries(patch)) {
     if (!(k in DEFAULT_SETTINGS)) continue;
@@ -109,7 +118,7 @@ export function getBoard(id) {
   if (!b) return null;
   return { ...b, state: JSON.parse(b.state), viewport: b.viewport ? JSON.parse(b.viewport) : null };
 }
-export function createBoard(name = 'Nuova mappa') {
+export function createBoard(name = tr('Nuova mappa')) {
   const id = newId();
   db.prepare('INSERT INTO boards(id, name, created_at, updated_at) VALUES(?, ?, ?, ?)').run(id, name, now(), now());
   return getBoard(id);
@@ -132,7 +141,7 @@ export function deleteBoard(id) {
   return removed;
 }
 export function ensureDefaultBoard() {
-  if (!listBoards().length) createBoard('La mia prima mappa');
+  if (!listBoards().length) createBoard(tr('La mia prima mappa'));
 }
 
 // ---------- Chat ----------
@@ -152,7 +161,7 @@ export function createChat({ title, parentChatId, forkFromSession, seedContext, 
   const id = newId();
   db.prepare(`INSERT INTO chats(id, title, title_locked, parent_chat_id, fork_from_session, seed_context, provider, created_at, updated_at)
               VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-    .run(id, title || 'Nuova chat', title ? 1 : 0, parentChatId || null, forkFromSession || null, seedContext || null,
+    .run(id, title || tr('Nuova chat'), title ? 1 : 0, parentChatId || null, forkFromSession || null, seedContext || null,
       provider === 'codex' ? 'codex' : 'claude', now(), now());
   return getChatPublic(id);
 }
@@ -188,7 +197,7 @@ export function deleteChat(id, { cleanBoards = true } = {}) {
 export function adoptOrphans() {
   const ids = orphanChatIds();
   if (!ids.length) return;
-  const b = createBoard('Chat recuperate');
+  const b = createBoard(tr('Chat recuperate'));
   const cols = Math.ceil(Math.sqrt(ids.length));
   const items = ids.map((chatId, i) => ({ id: newId(), type: 'chat', chatId, w: 96, h: 96, x: (i % cols) * 180, y: Math.floor(i / cols) * 190 }));
   updateBoard(b.id, { state: { items, edges: [] } });

@@ -4,8 +4,8 @@ import { readFile, stat } from 'node:fs/promises';
 import { join, extname, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as db from './db.js';
-import { streamChat, MOCK } from './claude.js';
-import { codexStatus } from './codex.js';
+import { streamChat, MOCK, listClaudeModels } from './claude.js';
+import { codexStatus, CODEX_MODELS } from './codex.js';
 import * as ai from './ai.js';
 import { generateImage } from './images.js';
 
@@ -105,6 +105,7 @@ function maskSettings(s) {
 }
 route('GET', '/api/settings', () => maskSettings(db.getSettings()));
 route('GET', '/api/providers', () => ({ claude: true, codex: codexStatus() }));
+route('GET', '/api/models', async () => ({ claude: await listClaudeModels(), codex: CODEX_MODELS }));
 route('PUT', '/api/settings', async ({ body }) => {
   for (const k of SECRET) if (typeof body[k] === 'string' && body[k].startsWith('••••')) delete body[k];
   return maskSettings(db.saveSettings(body));
@@ -117,7 +118,7 @@ route('POST', '/api/images/test', async () => {
 
 // Mappe
 route('GET', '/api/boards', () => db.listBoards());
-route('POST', '/api/boards', ({ body }) => db.createBoard(body.name || 'Nuova mappa'));
+route('POST', '/api/boards', ({ body }) => db.createBoard(body.name || undefined));
 route('GET', '/api/boards/:id', ({ id }) => db.getBoard(id) || Promise.reject(Object.assign(new Error('Mappa non trovata'), { status: 404 })));
 route('PATCH', '/api/boards/:id', ({ id, body }) => db.updateBoard(id, body));
 route('DELETE', '/api/boards/:id', ({ id }) => {
@@ -162,7 +163,7 @@ route('POST', '/api/chats', async ({ body }) => {
       } else if (it.text) parts.push(`- ${it.type === 'note' ? 'Nota' : 'Testo'}: ${it.text.slice(0, 500)}`);
     }
     const seed = `Questa conversazione nasce per far convergere queste idee dalla mappa:\n${parts.join('\n')}\nAiuta l'utente a integrarle, confrontarle e sintetizzarle.`;
-    return db.createChat({ title: body.title || 'Sintesi di idee', seedContext: seed, provider: body.provider || db.getSettings().defaultProvider });
+    return db.createChat({ title: body.title || db.tr('Sintesi di idee'), seedContext: seed, provider: body.provider || db.getSettings().defaultProvider });
   }
   return db.createChat({ title: body.title, provider: body.provider || db.getSettings().defaultProvider });
 });
@@ -240,7 +241,7 @@ async function handleMessage(req, res, chatId) {
     afterReply(chatId);
   } catch (e) {
     const stopped = job.ctrl.signal.aborted;
-    if (job.acc) db.addMessage(chatId, 'assistant', job.acc + '\n\n_(interrotto)_');
+    if (job.acc) db.addMessage(chatId, 'assistant', job.acc + (db.getSettings().uiLang === 'en' ? '\n\n_(stopped)_' : '\n\n_(interrotto)_'));
     else if (!stopped) db.addMessage(chatId, 'assistant', `_(Errore: ${String(e.message || e).slice(0, 300)})_`);
     emit('error', stopped ? 'Interrotto' : String(e.message || e));
     chatUpdated(db.getChatPublic(chatId));

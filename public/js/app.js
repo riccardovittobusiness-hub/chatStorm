@@ -4,6 +4,7 @@ import { Board, iconHTML } from './board.js';
 import { ChatPanel } from './chatpanel.js';
 import { Overview } from './overview.js';
 import { badgeOf, initials } from './badge.js';
+import { t, tn, setLang, translateDOM } from './i18n.js';
 import * as G from './geom.js';
 
 const $ = (id) => document.getElementById(id);
@@ -51,7 +52,7 @@ function scheduleSave(state) {
   const id = boardId;
   saveTimer = setTimeout(() => {
     saveTimer = null;
-    savePromise = api.updateBoard(id, { state }).catch(e => toast('Salvataggio non riuscito: ' + e.message, { error: true }));
+    savePromise = api.updateBoard(id, { state }).catch(e => toast(t('Salvataggio non riuscito: {msg}', { msg: e.message }), { error: true }));
   }, 350);
   renderChatList(); updateEmptyHint(); renderBoardList();
 }
@@ -72,8 +73,8 @@ const board = new Board({
   },
   onSuggestions: (n) => {
     $('suggest-bar').hidden = !n;
-    $('suggest-text').textContent = n === 1 ? '1 collegamento suggerito da Claude. Passa sopra l\'etichetta per leggere il motivo.'
-      : `${n} collegamenti suggeriti da Claude. Passa sopra un'etichetta per leggere il motivo.`;
+    $('suggest-text').textContent = tn(n, '1 collegamento suggerito da Claude. Passa sopra l\'etichetta per leggere il motivo.',
+      '{n} collegamenti suggeriti da Claude. Passa sopra un\'etichetta per leggere il motivo.');
   },
   onDeleteChats: (ids) => deleteChats(ids),
   actions: {
@@ -117,7 +118,7 @@ const overview = new Overview({
   onOpen: async (id) => { if (id !== boardId) await switchBoard(id, 0); overview.close(); },
   onNew: async () => { await overview.close({ flyIn: false }); newBoard(); },
 });
-const openOverview = () => { if (!turning) overview.open().catch(e => toast('Vista non disponibile: ' + e.message, { error: true })); };
+const openOverview = () => { if (!turning) overview.open().catch(e => toast(t('Vista non disponibile: {msg}', { msg: e.message }), { error: true })); };
 
 function chatUpdated(c) {
   chats.set(c.id, { ...chats.get(c.id), ...c });
@@ -141,7 +142,7 @@ async function forkChat(chatId) {
   chats.set(chat.id, chat);
   const at = src ? { x: src.x + src.w * 1.5 + 170, y: src.y + src.w / 2 + 40 } : board.visibleCenter();
   const it = board.addChatItem(chat.id, at, src ? { w: src.w } : {});
-  if (src) board.addEdge(src.id, it.id, { label: 'dirama', color: 'purple' });
+  if (src) board.addEdge(src.id, it.id, { label: t('dirama'), color: 'purple' });
   await panel.open(chat.id);
   setTimeout(() => board.reveal(it.id), 60);
 }
@@ -150,20 +151,20 @@ async function deleteChats(ids) {
   const list = ids.map(id => chats.get(id)).filter(Boolean);
   if (!list.length) return false;
   const ok = await confirmModal({
-    title: list.length === 1 ? `Eliminare la chat "${list[0].title}"?` : `Eliminare ${list.length} chat?`,
-    body: 'Le icone spariscono dalla mappa e dall\'elenco, e tutti i messaggi vengono cancellati. L\'operazione non si può annullare.',
-    ok: list.length === 1 ? 'Elimina chat' : `Elimina ${list.length} chat`,
+    title: list.length === 1 ? t('Eliminare la chat "{title}"?', { title: list[0].title }) : t('Eliminare {n} chat?', { n: list.length }),
+    body: t('Le icone spariscono dalla mappa e dall\'elenco, e tutti i messaggi vengono cancellati. L\'operazione non si può annullare.'),
+    ok: list.length === 1 ? t('Elimina chat') : t('Elimina {n} chat', { n: list.length }),
   });
   if (!ok) return false;
   for (const c of list) {
     try { await api.deleteChat(c.id); }
-    catch (e) { toast(`"${c.title}" non eliminata: ${e.message}`, { error: true }); continue; }
+    catch (e) { toast(t('"{title}" non eliminata: {msg}', { title: c.title, msg: e.message }), { error: true }); continue; }
     chats.delete(c.id);
     board.removeChatEverywhere(c.id);
     if (panel.chatId === c.id) panel.close();
   }
   renderChatList();
-  toast(list.length === 1 ? 'Chat eliminata' : 'Chat eliminate');
+  toast(list.length === 1 ? t('Chat eliminata') : t('Chat eliminate'));
   return true;
 }
 
@@ -171,13 +172,13 @@ async function deleteChats(ids) {
 async function bulkIcons(kind, ids) {
   if (kind === 'redraw') {
     const todo = ids.filter(id => chats.get(id)?.msg_count);
-    if (!todo.length) return toast('Le chat selezionate sono vuote: scrivi almeno un messaggio');
+    if (!todo.length) return toast(t('Le chat selezionate sono vuote: scrivi almeno un messaggio'));
     for (let i = 0; i < todo.length; i++) {
-      const done = toast(`Claude disegna le icone (${i + 1} di ${todo.length})…`, { spin: true });
+      const done = toast(t('Claude disegna le icone ({i} di {n})…', { i: i + 1, n: todo.length }), { spin: true });
       try { chatUpdated(await api.icon(todo[i], false, 'svg')); }
       catch (e) { toast(e.message, { error: true }); } finally { done(); }
     }
-    return toast('Icone ridisegnate');
+    return toast(t('Icone ridisegnate'));
   }
   await Promise.all(ids.map((id, i) => {
     const c = chats.get(id); if (!c) return null;
@@ -190,14 +191,14 @@ async function bulkIcons(kind, ids) {
 
 async function mergeSelection() {
   const items = board.selectedItems().filter(i => i.type !== 'frame');
-  if (items.length < 2) return toast('Seleziona almeno due elementi da unire');
+  if (items.length < 2) return toast(t('Seleziona almeno due elementi da unire'));
   await flushSave();
-  const chat = await withSpinner('Preparo il contesto con i riassunti…', () => api.createChat({ mergeItems: items.map(i => i.id), boardId }));
+  const chat = await withSpinner(t('Preparo il contesto con i riassunti…'), () => api.createChat({ mergeItems: items.map(i => i.id), boardId }));
   if (!chat) return;
   chats.set(chat.id, chat);
   const u = G.unionBounds(items);
   const it = board.addChatItem(chat.id, { x: u.x + u.w + 220, y: u.y + u.h / 2 });
-  board.mutate(() => items.forEach(src => board.addEdge(src.id, it.id, { label: 'confluisce in', color: 'green' }, { record: false })));
+  board.mutate(() => items.forEach(src => board.addEdge(src.id, it.id, { label: t('confluisce in'), color: 'green' }, { record: false })));
   await panel.open(chat.id);
   setTimeout(() => board.reveal(it.id), 60);
 }
@@ -205,9 +206,9 @@ async function mergeSelection() {
 async function synthesis() {
   const sel = board.selectedItems().filter(i => i.type !== 'frame');
   const items = sel.length ? sel : board.state.items.filter(i => i.type !== 'frame');
-  if (!items.length) return toast('La mappa è vuota');
+  if (!items.length) return toast(t('La mappa è vuota'));
   await flushSave();
-  const r = await withSpinner(`Claude sintetizza ${sel.length ? 'la selezione' : 'la mappa'}…`, () => api.synthesis(boardId, sel.map(i => i.id)));
+  const r = await withSpinner(sel.length ? t('Claude sintetizza la selezione…') : t('Claude sintetizza la mappa…'), () => api.synthesis(boardId, sel.map(i => i.id)));
   if (r?.markdown) board.addNoteText(r.markdown, G.unionBounds(items), 'blue');
 }
 
@@ -216,15 +217,15 @@ async function aiAction(kind) {
   if (kind === 'synthesis') return synthesis();
   await flushSave();
   if (kind === 'links') {
-    const r = await withSpinner('Claude cerca collegamenti tra le idee…', () => api.suggestLinks(boardId));
+    const r = await withSpinner(t('Claude cerca collegamenti tra le idee…'), () => api.suggestLinks(boardId));
     if (!r) return;
-    if (!r.links.length) return toast('Nessun nuovo collegamento suggerito');
+    if (!r.links.length) return toast(t('Nessun nuovo collegamento suggerito'));
     board.addSuggestions(r.links);
     board.fit();
   }
   if (kind === 'clusters') {
     const sel = board.selectedItems().filter(i => i.type !== 'frame').map(i => i.id);
-    const r = await withSpinner('Claude raggruppa le idee per temi…', () => api.clusters(boardId, sel.length > 1 ? sel : []));
+    const r = await withSpinner(t('Claude raggruppa le idee per temi…'), () => api.clusters(boardId, sel.length > 1 ? sel : []));
     if (r?.groups?.length) board.applyClusters(r.groups);
   }
 }
@@ -276,11 +277,11 @@ async function switchBoard(id, dir = 0) {
     plane.classList.remove('turning');
   } catch (e) {
     $('plane').classList.remove('turning');
-    toast('Mappa non caricata: ' + e.message, { error: true });
+    toast(t('Mappa non caricata: {msg}', { msg: e.message }), { error: true });
   } finally { turning = false; }
 }
 function rotate(step) {
-  if (boardsCache.length < 2) return toast('C\'è una sola mappa: creane un\'altra con ＋ nel pannello a sinistra');
+  if (boardsCache.length < 2) return toast(t('C\'è una sola mappa: creane un\'altra con ＋ nel pannello a sinistra'));
   const i = boardIndex(boardId);
   const next = boardsCache[(i + step + boardsCache.length) % boardsCache.length];
   switchBoard(next.id, step);
@@ -302,7 +303,7 @@ function renderBoardList() {
     li.dataset.id = b.id;
     const n = b.id === boardId ? liveChatCount() : b.chat_count;
     li.innerHTML = `<span class="face"></span><span class="name"></span><span class="count">${n || ''}</span>
-      <span class="acts"><button data-a="rename" title="Rinomina">✎</button><button data-a="delete" title="Elimina mappa">🗑</button></span>`;
+      <span class="acts"><button data-a="rename" title="${t('Rinomina')}">✎</button><button data-a="delete" title="${t('Elimina mappa')}">🗑</button></span>`;
     li.querySelector('.name').textContent = b.name;
     li.onclick = (e) => {
       const a = e.target.closest('[data-a]')?.dataset.a;
@@ -323,7 +324,7 @@ function startRename(id) {
   li.classList.add('renaming');
   const input = document.createElement('input');
   input.value = b.name;
-  input.setAttribute('aria-label', 'Nome della mappa');
+  input.setAttribute('aria-label', t('Nome della mappa'));
   li.querySelector('.name').replaceWith(input);
   input.focus(); input.select();
   let done = false;
@@ -333,7 +334,7 @@ function startRename(id) {
     li.classList.remove('renaming');
     if (save && name && name !== b.name) {
       b.name = name;
-      try { await api.updateBoard(id, { name }); } catch (e) { toast('Nome non salvato: ' + e.message, { error: true }); }
+      try { await api.updateBoard(id, { name }); } catch (e) { toast(t('Nome non salvato: {msg}', { msg: e.message }), { error: true }); }
     }
     renderBoardList(); renderFaceNav();
   };
@@ -349,10 +350,11 @@ function startRename(id) {
 async function deleteBoard(b) {
   const n = b.id === boardId ? liveChatCount() : b.chat_count;
   const ok = await confirmModal({
-    title: `Eliminare la mappa "${b.name}"?`,
-    body: n ? `${n === 1 ? 'Verrà eliminata anche la chat che contiene' : `Verranno eliminate anche le ${n} chat che contiene`}, con tutti i messaggi. L'operazione non si può annullare.`
-      : 'La mappa e tutto ciò che contiene verranno eliminati. L\'operazione non si può annullare.',
-    ok: 'Elimina mappa',
+    title: t('Eliminare la mappa "{name}"?', { name: b.name }),
+    body: n ? tn(n, 'Verrà eliminata anche la chat che contiene, con tutti i messaggi. L\'operazione non si può annullare.',
+      'Verranno eliminate anche le {n} chat che contiene, con tutti i messaggi. L\'operazione non si può annullare.')
+      : t('La mappa e tutto ciò che contiene verranno eliminati. L\'operazione non si può annullare.'),
+    ok: t('Elimina mappa'),
   });
   if (!ok) return;
   const wasCurrent = b.id === boardId;
@@ -361,18 +363,18 @@ async function deleteBoard(b) {
   try {
     const r = await api.deleteBoard(b.id);
     for (const c of r.removedChats || []) { chats.delete(c); if (panel.chatId === c) panel.close(); }
-  } catch (e) { return toast('Mappa non eliminata: ' + e.message, { error: true }); }
+  } catch (e) { return toast(t('Mappa non eliminata: {msg}', { msg: e.message }), { error: true }); }
   await loadBoards();
   if (wasCurrent) {
     const next = boardsCache[Math.min(idx, boardsCache.length - 1)];
     boardId = '__deleted__';
     await switchBoard(next.id, 1);
   } else { renderBoardList(); renderFaceNav(); }
-  toast('Mappa eliminata');
+  toast(t('Mappa eliminata'));
 }
 
 async function newBoard() {
-  const b = await api.createBoard('Nuova mappa');
+  const b = await api.createBoard(t('Nuova mappa'));
   await loadBoards();
   await switchBoard(b.id, 1);
   startRename(b.id);
@@ -405,15 +407,15 @@ function renderChatList() {
   const ul = $('chat-list');
   ul.innerHTML = '';
   if (!list.length) {
-    ul.innerHTML = `<li class="empty">${q ? 'Nessuna chat corrisponde alla ricerca.' : 'Nessuna chat in questa mappa. Fai doppio clic sulla lavagna per crearne una.'}</li>`;
+    ul.innerHTML = `<li class="empty">${q ? t('Nessuna chat corrisponde alla ricerca.') : t('Nessuna chat in questa mappa. Fai doppio clic sulla lavagna per crearne una.')}</li>`;
     return;
   }
   for (const c of list) {
     const li = document.createElement('li');
     li.className = panel.chatId === c.id ? 'open' : '';
     li.title = c.summary || '';
-    li.innerHTML = `<div class="thumb">${iconHTML(c)}</div><div class="t"><div></div><small>${busyChats.has(c.id) ? `<span class="busy-text">${c.provider === 'codex' ? 'ChatGPT' : 'Claude'} sta rispondendo…</span>` : (c.provider === 'codex' ? 'ChatGPT, ' : '') + (c.msg_count === 1 ? '1 messaggio' : `${c.msg_count} messaggi`)}</small></div>
-      <button class="del" title="Elimina la chat">🗑</button>`;
+    li.innerHTML = `<div class="thumb">${iconHTML(c)}</div><div class="t"><div></div><small>${busyChats.has(c.id) ? `<span class="busy-text">${c.provider === 'codex' ? t('ChatGPT sta rispondendo…') : t('Claude sta rispondendo…')}</span>` : (c.provider === 'codex' ? 'ChatGPT, ' : '') + tn(c.msg_count, '1 messaggio', '{n} messaggi')}</small></div>
+      <button class="del" title="${t('Elimina la chat')}">🗑</button>`;
     li.querySelector('.t div').textContent = c.title;
     li.onclick = (e) => {
       if (e.target.closest('.del')) return deleteChats([c.id]);
@@ -432,11 +434,32 @@ const STYLE_PRESETS = {
   'Pixel art': '16-bit pixel art icon, limited blue palette, crisp pixels, plain background, no text',
   'Line art': 'minimal line art icon, cobalt blue thick strokes on light background, no text',
 };
+let modelsCache = null;
+/** Riempie i selettori dei modelli; un valore non in elenco va in "Altro…". */
+async function fillModelSelects(s) {
+  modelsCache ||= await api.models().catch(() => ({ claude: [], codex: [] }));
+  for (const sel of document.querySelectorAll('select[data-model]')) {
+    const list = modelsCache[sel.dataset.model] || [];
+    const custom = sel.parentNode.querySelector('.custom-model');
+    const opt = (v, label) => { const o = document.createElement('option'); o.value = v; o.textContent = label; return o; };
+    sel.replaceChildren(opt('', t('Predefinito')),
+      ...list.filter(m => m.value && m.value !== 'default').map(m => opt(m.value, m.displayName + (m.description ? ` — ${t(m.description)}` : ''))),
+      opt('__custom', t('Altro…')));
+    const cur = s[sel.name] || '';
+    const known = cur === '' || list.some(m => m.value === cur);
+    sel.value = known ? cur : '__custom';
+    custom.value = known ? '' : cur;
+    custom.hidden = known;
+    sel.onchange = () => { custom.hidden = sel.value !== '__custom'; if (!custom.hidden) custom.focus(); };
+  }
+}
+
 async function openSettings() {
   const s = await api.settings();
   const f = $('settings-form');
+  await fillModelSelects(s);
   for (const el of f.elements) {
-    if (!el.name || !(el.name in s)) continue;
+    if (!el.name || !(el.name in s) || el.dataset.model) continue;
     if (el.type === 'radio') el.checked = el.value === s[el.name];
     else if (el.type === 'checkbox') el.checked = s[el.name] === 'true';
     else el.value = s[el.name];
@@ -446,10 +469,10 @@ async function openSettings() {
   api.providers().then(p => {
     const el = $('codex-status'), c = p.codex;
     el.className = 'status ' + (c.installed && c.loggedIn ? 'ok' : 'warn');
-    el.textContent = c.installing ? 'ChatGPT (Codex): installazione del supporto in corso…'
+    el.textContent = t(c.installing ? 'ChatGPT (Codex): installazione del supporto in corso…'
       : !c.loggedIn ? 'ChatGPT (Codex): non risulti collegato. Apri l\'app Codex e accedi con il tuo account ChatGPT.'
       : c.installed ? 'ChatGPT (Codex): pronto, collegato al tuo account ChatGPT.'
-      : 'ChatGPT (Codex): collegato. Il supporto verrà installato al primo utilizzo (serve qualche secondo).';
+      : 'ChatGPT (Codex): collegato. Il supporto verrà installato al primo utilizzo (serve qualche secondo).');
   }).catch(() => {});
   $('settings-dialog').showModal();
 }
@@ -459,6 +482,7 @@ function readSettingsForm() {
     if (!el.name) continue;
     if (el.type === 'radio') { if (el.checked) out[el.name] = el.value; }
     else if (el.type === 'checkbox') out[el.name] = el.checked ? 'true' : 'false';
+    else if (el.dataset.model && el.value === '__custom') out[el.name] = el.parentNode.querySelector('.custom-model').value.trim();
     else out[el.name] = el.value.trim();
   }
   return out;
@@ -531,18 +555,21 @@ function wire() {
   $('btn-settings').onclick = openSettings;
   $('btn-help').onclick = () => $('help-dialog').showModal();
   $('settings-form').addEventListener('change', (e) => { if (['imageProvider', 'iconSource'].includes(e.target.name)) updateProviderFields(); });
-  $('style-presets').innerHTML = Object.keys(STYLE_PRESETS).map(k => `<button type="button" data-style="${k}">${k}</button>`).join('');
+  $('style-presets').innerHTML = Object.keys(STYLE_PRESETS).map(k => `<button type="button" data-style="${k}">${t(k)}</button>`).join('');
   $('style-presets').onclick = (e) => { const k = e.target.dataset.style; if (k) $('settings-form').elements.iconStyle.value = STYLE_PRESETS[k]; };
   $('settings-save').onclick = async (e) => {
     e.preventDefault();
-    await api.saveSettings(readSettingsForm());
-    $('settings-dialog').close(); toast('Impostazioni salvate');
+    const before = (await api.settings()).uiLang;
+    const saved = await api.saveSettings(readSettingsForm());
+    $('settings-dialog').close();
+    if (saved.uiLang !== before) { await flushSave(); location.reload(); return; }   // nuova lingua: ricarico l'interfaccia
+    toast(t('Impostazioni salvate'));
   };
   $('test-image').onclick = async () => {
     await api.saveSettings(readSettingsForm());
-    $('test-result').innerHTML = '<span class="spin" style="display:inline-block;vertical-align:middle"></span> genero…';
-    try { const r = await api.testImage(); $('test-result').innerHTML = `<img src="${r.dataUrl}" alt=""> Funziona`; }
-    catch (err) { $('test-result').textContent = 'Non riuscita: ' + err.message; }
+    $('test-result').innerHTML = '<span class="spin" style="display:inline-block;vertical-align:middle"></span> ' + t('genero…');
+    try { const r = await api.testImage(); $('test-result').innerHTML = `<img src="${r.dataUrl}" alt=""> ${t('Funziona')}`; }
+    catch (err) { $('test-result').textContent = t('Non riuscita: {msg}', { msg: err.message }); }
   };
 
   window.addEventListener('keydown', (e) => {
@@ -576,8 +603,8 @@ function wire() {
 function closeMenus() { document.querySelectorAll('.dropdown.open').forEach(d => d.classList.remove('open')); }
 function setWheelMode(m) {
   board.wheelMode = m; localStorage.setItem('cc:wheel', m);
-  $('wheel-mode').textContent = m === 'zoom' ? 'Rotella: zoom' : 'Rotella: scorri';
-  $('wheel-mode').title = m === 'zoom' ? 'La rotella fa zoom. Clic per farle scorrere la vista (zoom con Ctrl+rotella)' : 'La rotella scorre la vista, Ctrl+rotella o pizzico per lo zoom. Clic per cambiare';
+  $('wheel-mode').textContent = t(m === 'zoom' ? 'Rotella: zoom' : 'Rotella: scorri');
+  $('wheel-mode').title = t(m === 'zoom' ? 'La rotella fa zoom. Clic per farle scorrere la vista (zoom con Ctrl+rotella)' : 'La rotella scorre la vista, Ctrl+rotella o pizzico per lo zoom. Clic per cambiare');
 }
 function download(blob, name) {
   const a = document.createElement('a');
@@ -588,10 +615,12 @@ function download(blob, name) {
 // ---------- Avvio ----------
 async function init() {
   if (/Electron/.test(navigator.userAgent)) document.body.classList.add('in-app');
+  const status = await api.status();
+  setLang(status.settings?.uiLang);
+  translateDOM(document.body);
   wire();
   setWheelMode(localStorage.getItem('cc:wheel') || 'zoom');
   board.snapOn = !!localStorage.getItem('cc:snap'); $('snap-toggle').checked = board.snapOn;
-  const status = await api.status();
   if (status.mock) { $('mock-banner').hidden = false; document.body.classList.add('has-banner'); }
   for (const c of await api.chats()) chats.set(c.id, c);
   await loadBoards();
@@ -619,4 +648,4 @@ async function init() {
     fetch(`/api/boards/${boardId}`, { method: 'PATCH', keepalive: true, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ state: board.state }) });
   });
 }
-init().catch(e => toast('Avvio non riuscito: ' + e.message, { error: true, ms: 10000 }));
+init().catch(e => toast(t('Avvio non riuscito: {msg}', { msg: e.message }), { error: true, ms: 10000 }));

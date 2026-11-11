@@ -1,5 +1,6 @@
 // Vista d'insieme: le mappe si staccano dal piano e si dispongono su un anello 3D.
 import { drawThumb } from './thumb.js';
+import { t, tn } from './i18n.js';
 
 const $ = (id) => document.getElementById(id);
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
@@ -54,12 +55,13 @@ export class Overview {
     this.ring.innerHTML = '';
     this.cards = this.items.map((it, i) => {
       const card = document.createElement('div');
+      card.dataset.current = t('Aperta ora');
       card.className = 'ov-card' + (it.kind === 'new' ? ' new' : '') + (it.id === this.o.currentId() ? ' current' : '');
       card.dataset.i = i;
       if (it.kind === 'new') {
-        card.innerHTML = '<div class="ov-new"><span>＋</span>Nuova mappa</div>';
+        card.innerHTML = `<div class="ov-new"><span>＋</span>${t('Nuova mappa')}</div>`;
       } else {
-        card.innerHTML = `<canvas></canvas><div class="cap"><b></b><small>${it.chat_count === 1 ? '1 chat' : `${it.chat_count || 0} chat`}</small></div>`;
+        card.innerHTML = `<canvas></canvas><div class="cap"><b></b><small>${tn(it.chat_count || 0, '1 chat', '{n} chat')}</small></div>`;
         card.querySelector('b').textContent = it.name;
       }
       this.ring.appendChild(card);
@@ -103,7 +105,7 @@ export class Overview {
       card.classList.toggle('away', n > 1 && facing < 0.25);
     });
     const it = this.items[this.index];
-    $('ov-title').textContent = it?.kind === 'new' ? 'Crea una nuova mappa' : it?.name || '';
+    $('ov-title').textContent = it?.kind === 'new' ? t('Crea una nuova mappa') : it?.name || '';
   }
 
   spin(dir) { this.angle -= dir * this.step; this.apply(); }

@@ -265,19 +265,23 @@
         <div class="ie-row"><span class="w">Riassunti, icone e strumenti della mappa</span>
           <label class="radio"><input type="radio" name="utilityProvider" value="claude"> Claude</label>
           <label class="radio"><input type="radio" name="utilityProvider" value="codex"> ChatGPT (Codex)</label></div>
+        <label>Modello Claude per le chat
+          <select name="chatModel" data-model="claude"></select>
+          <input class="custom-model" hidden placeholder="Scrivi il nome del modello"></label>
+        <label>Modello Claude per riassunti e strumenti
+          <select name="utilityModel" data-model="claude"></select>
+          <input class="custom-model" hidden placeholder="Scrivi il nome del modello"></label>
+        <label>Modello ChatGPT (Codex)
+          <select name="codexModel" data-model="codex"></select>
+          <input class="custom-model" hidden placeholder="Scrivi il nome del modello"></label>
         <p class="status" id="codex-status"></p>
       </fieldset>
       <fieldset>
-        <legend>Claude</legend>
-        <label>Modello per le chat <input name="chatModel" placeholder="predefinito, oppure sonnet, opus"></label>
-        <label>Modello per riassunti e strumenti della mappa <input name="utilityModel" placeholder="predefinito, oppure haiku per consumare meno"></label>
+        <legend>Generale</legend>
+        <label>Lingua dell'app e delle risposte
+          <select name="uiLang"><option value="it">Italiano</option><option value="en">English</option></select></label>
         <label>Aggiorna il riassunto ogni N messaggi <input name="resummarizeEvery" type="number" min="2" max="50"></label>
-        <label>Lingua <input name="language"></label>
         <label class="check"><input type="checkbox" name="webTools"> Permetti di cercare sul web nelle chat (Claude e Codex)</label>
-      </fieldset>
-      <fieldset>
-        <legend>ChatGPT (Codex)</legend>
-        <label>Modello Codex <input name="codexModel" placeholder="predefinito di Codex"></label>
       </fieldset>
       <div class="dialog-actions">
         <button value="cancel" formnovalidate>Annulla</button>

@@ -323,7 +323,7 @@ fieldset a { color: var(--cobalt); }
   box-shadow: 0 30px 60px -20px rgba(2,10,30,.8), 0 0 0 1px rgba(255,255,255,.35); }
 .ov-card canvas { width: 100%; height: 100%; display: block; border-radius: 18px; }
 .ov-card.front { box-shadow: 0 40px 80px -20px rgba(2,10,30,.85), 0 0 0 2px var(--azure), 0 0 60px -10px rgba(56,168,245,.7); }
-.ov-card.current::before { content: 'Aperta ora'; position: absolute; top: 12px; left: 12px; z-index: 1; background: var(--grad); color: #fff;
+.ov-card.current::before { content: attr(data-current); position: absolute; top: 12px; left: 12px; z-index: 1; background: var(--grad); color: #fff;
   font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 20px; }
 .ov-card .cap { position: absolute; top: calc(100% + 14px); left: 0; right: 0; text-align: center; pointer-events: none; }
 .ov-card .cap b { display: block; font: 600 18px var(--display); color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -415,3 +415,6 @@ body.chat-full .cp-head { padding-top: 18px; }
 body.in-app.chat-full .cp-head { padding-top: 34px; -webkit-app-region: drag; }
 body.in-app.chat-full .cp-head > * { -webkit-app-region: no-drag; }
 body.chat-full #cp-input { min-height: 72px; }
+
+select { font: inherit; border: 1px solid var(--line); border-radius: 9px; padding: 7px 10px; background: #fff; color: var(--ink); }
+fieldset .custom-model { margin-top: 4px; }

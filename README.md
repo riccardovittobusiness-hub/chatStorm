@@ -52,10 +52,16 @@ Ogni chat può usare **Claude** (tramite Claude Code) o **ChatGPT** (tramite Cod
 - Il modello si sceglie per ogni chat: menu ▾ accanto a **Chat** nella barra, oppure il pulsante **Claude / ChatGPT**
   in alto nel pannello chat (prima del primo messaggio). Le chat di ChatGPT hanno il segno **GPT** sull'icona.
 - In ⚙ Impostazioni → Modelli scegli il modello predefinito per le nuove chat e quello per riassunti, icone e strumenti della mappa.
+  Sotto ci sono i selettori dei modelli: per Claude l'elenco arriva da Claude Code (quindi è quello del tuo account),
+  per ChatGPT ci sono GPT-5.6 Sol, Terra e Luna. Con **Altro…** puoi scrivere il nome di qualsiasi altro modello.
 - Per ChatGPT serve aver fatto l'accesso a Codex con il tuo account ChatGPT (per esempio nell'app Codex). Il supporto Codex
   (`@openai/codex-sdk`) viene installato da `avvia.command`, o automaticamente al primo utilizzo.
 - Codex lavora in una cartella vuota in sola lettura (`data/codex-workspace`): non vede l'archivio delle chat.
 - "Dirama" su una chat di ChatGPT crea una nuova chat che riceve la conversazione come contesto.
+
+## Lingua
+In ⚙ Impostazioni → Generale scegli **Italiano** o **English**: cambia la lingua dell'interfaccia e quella in cui rispondono
+Claude e ChatGPT (riassunti, titoli e strumenti della mappa compresi).
 
 ## Icone delle chat
 Si sceglie in ⚙ **Impostazioni → Icone delle chat**:

@@ -3,6 +3,7 @@ import * as G from './geom.js';
 import { COLORS, FRAME_COLORS, EDGE_COLORS } from './board.js';
 import { iconSpec, drawBadge } from './badge.js';
 import { plain } from './md.js';
+import { t } from './i18n.js';
 
 const imgCache = new Map();
 function loadImg(src) {
@@ -28,7 +29,7 @@ export async function drawThumb(canvas, state, getChat) {
   const u = G.unionBounds(items);
   if (!u) {
     g.fillStyle = '#8FA3C0'; g.font = `500 ${W / 26}px 'Instrument Sans', system-ui, sans-serif`; g.textAlign = 'center';
-    g.fillText('Mappa vuota', W / 2, H / 2); g.textAlign = 'left';
+    g.fillText(t('Mappa vuota'), W / 2, H / 2); g.textAlign = 'left';
     return;
   }
   const pad = W * 0.07;

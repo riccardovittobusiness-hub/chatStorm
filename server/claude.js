@@ -76,6 +76,31 @@ export async function streamChat({ provider = 'claude', prompt, sessionId, forkF
   return { text: text.trim(), sessionId: newSessionId };
 }
 
+// Elenco dei modelli Claude disponibili con il tuo account (chiesto a Claude Code, con una riserva fissa)
+const CLAUDE_FALLBACK = [
+  { value: 'opus', displayName: 'Opus', description: 'il più capace' },
+  { value: 'sonnet', displayName: 'Sonnet', description: 'equilibrato' },
+  { value: 'haiku', displayName: 'Haiku', description: 'veloce, consuma meno' },
+  { value: 'claude-opus-5-5', displayName: 'Claude Opus 5.5', description: '' },
+  { value: 'claude-sonnet-5-5', displayName: 'Claude Sonnet 5.5', description: '' },
+  { value: 'claude-haiku-5-5', displayName: 'Claude Haiku 5.5', description: '' },
+];
+let claudeModelsCache = null;
+export async function listClaudeModels() {
+  if (MOCK) return CLAUDE_FALLBACK;
+  if (claudeModelsCache) return claudeModelsCache;
+  const abortController = new AbortController();
+  try {
+    async function* idle() { await new Promise((r) => abortController.signal.addEventListener('abort', r)); }
+    const q = sdk.query({ prompt: idle(), options: { settingSources: [], cwd: DATA_DIR, persistSession: false, abortController } });
+    const list = await Promise.race([q.supportedModels(), new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 20000))]);
+    if (Array.isArray(list) && list.length) claudeModelsCache = list.map(m => ({ value: m.value, displayName: m.displayName || m.value, description: m.description || '' }));
+  } catch (e) {
+    console.warn('[modelli] elenco non disponibile, uso quello fisso:', e.message);
+  } finally { abortController.abort(); }
+  return claudeModelsCache || CLAUDE_FALLBACK;
+}
+
 /** Chiamata singola senza strumenti né sessione, per riassunti e strumenti della mappa. */
 export async function oneShot(prompt, settings, system = 'Rispondi solo con JSON valido, senza testo prima o dopo.') {
   if (MOCK) return mockOneShot(prompt);

@@ -14,6 +14,7 @@ export const api = {
   status: () => req('GET', '/api/status'),
   settings: () => req('GET', '/api/settings'),
   providers: () => req('GET', '/api/providers'),
+  models: () => req('GET', '/api/models'),
   saveSettings: (s) => req('PUT', '/api/settings', s),
   testImage: () => req('POST', '/api/images/test'),
 

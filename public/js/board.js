@@ -2,6 +2,7 @@
 import { md, plain } from './md.js';
 import * as G from './geom.js';
 import { iconSpec, badgeHTML, drawBadge } from './badge.js';
+import { t } from './i18n.js';
 
 const uid = () => crypto.randomUUID();
 const $ = (id) => document.getElementById(id);
@@ -210,14 +211,14 @@ export class Board {
       const badge = chat?.msg_count ? `<div class="badge">${chat.msg_count}</div>` : '';
       const prov = chat?.provider === 'codex' ? '<div class="prov" title="Risponde ChatGPT (Codex)">GPT</div>' : '';
       return `<div class="icon">${chat ? iconHTML(chat, it.chatId) : '<div class="initials" style="background:#999">?</div>'}${spinner}</div>${badge}${prov}
-        <div class="label">${escHTML(chat?.title || 'Chat eliminata')}</div>${handles}${resize}`;
+        <div class="label">${escHTML(chat?.title || t('Chat eliminata'))}</div>${handles}${resize}`;
     }
     if (it.type === 'note' || it.type === 'text') {
-      const empty = !it.text?.trim() ? `<span style="opacity:.45">${it.type === 'note' ? 'Doppio clic per scrivere' : 'Testo'}</span>` : md(it.text);
+      const empty = !it.text?.trim() ? `<span style="opacity:.45">${it.type === 'note' ? t('Doppio clic per scrivere') : t('Testo')}</span>` : md(it.text);
       return `<div class="body md">${empty}</div>${handles}${resize}`;
     }
     if (it.type === 'frame') {
-      return `<div class="frame-title" style="background:${FRAME_COLORS[it.color] || FRAME_COLORS.blue}">${escHTML(it.text || 'Riquadro')}</div>${resize}`;
+      return `<div class="frame-title" style="background:${FRAME_COLORS[it.color] || FRAME_COLORS.blue}">${escHTML(it.text || t('Riquadro'))}</div>${resize}`;
     }
     return '';
   }
@@ -282,13 +283,13 @@ export class Board {
   buildCtx() {
     const ctx = this.ctx;
     ctx.dataset.sig = this.ctxSignature();
-    const B = (act, label, title, extra = '') => `<button data-act="${act}" title="${title}" ${extra}>${label}</button>`;
+    const B = (act, label, title, extra = '') => `<button data-act="${act}" title="${t(title)}" ${extra}>${t(label)}</button>`;
     const sep = '<div class="sep"></div>';
     let h = '';
     if (this.selEdge) {
       const e = this.state.edges.find(x => x.id === this.selEdge);
       if (e.status === 'suggested') h += B('accept', '✓ Accetta', 'Accetta il collegamento') + B('reject', '✕ Scarta', 'Scarta') + sep;
-      h += `<input data-act="label" value="${escHTML(e.label || '')}" placeholder="Etichetta (es. approfondisce)">`;
+      h += `<input data-act="label" value="${escHTML(e.label || '')}" placeholder="${t('Etichetta (es. approfondisce)')}">`;
       h += sep + B('shape:curved', '⌒', 'Curva', e.shape === 'curved' || !e.shape ? 'class="on"' : '')
         + B('shape:straight', '╱', 'Dritta') + B('shape:elbow', '┐', 'A gomito');
       h += sep + B('dash', e.dash ? '┄' : '─', 'Tratteggiata / continua');
@@ -361,7 +362,7 @@ export class Board {
 
   // ---------- Operazioni ----------
   addItem(type, at, extra = {}) {
-    const d = { ...DEFAULTS[type], ...extra };
+    const d = { ...DEFAULTS[type], ...(type === 'frame' ? { text: t('Tema') } : {}), ...extra };
     const it = { id: uid(), type, ...d, x: 0, y: 0 };
     const b = G.bounds(it);
     it.x = Math.round(at.x - b.w / 2); it.y = Math.round(at.y - b.h / 2);
@@ -850,7 +851,7 @@ export class Board {
   async exportPNG() {
     const items = this.state.items;
     const u = G.unionBounds(items);
-    if (!u) throw new Error('La mappa è vuota');
+    if (!u) throw new Error(t('La mappa è vuota'));
     const pad = 60, scale = 2;
     const cv = document.createElement('canvas');
     cv.width = (u.w + pad * 2) * scale; cv.height = (u.h + pad * 2 + 30) * scale;

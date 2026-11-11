@@ -7,6 +7,13 @@ import { fileURLToPath } from 'node:url';
 import { DATA_DIR } from './db.js';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
+
+// Modelli disponibili in Codex con l'accesso ChatGPT (dal 14 ottobre 2026 gpt-5.5 è sostituito dalla famiglia 5.6)
+export const CODEX_MODELS = [
+  { value: 'gpt-5.6-sol', displayName: 'GPT-5.6 Sol', description: 'il più capace' },
+  { value: 'gpt-5.6-terra', displayName: 'GPT-5.6 Terra', description: 'equilibrato' },
+  { value: 'gpt-5.6-luna', displayName: 'GPT-5.6 Luna', description: 'veloce, consuma meno' },
+];
 const SDK_DIR = join(ROOT, 'node_modules', '@openai', 'codex-sdk');
 // Cartella vuota in sola lettura per Codex: non vede l'archivio delle chat né le chiavi
 const WORKDIR = join(DATA_DIR, 'codex-workspace');
