@@ -8,6 +8,7 @@ import * as G from './geom.js';
 
 const $ = (id) => document.getElementById(id);
 const chats = new Map();
+const busyChats = new Set();          // chat in cui Claude sta rispondendo
 let boardId = null;
 let boardsCache = [];
 let turning = false;
@@ -62,6 +63,7 @@ async function flushSave() {
 // ---------- Lavagna ----------
 const board = new Board({
   getChat: (id) => chats.get(id),
+  isBusy: (id) => busyChats.has(id),
   onSave: scheduleSave,
   onViewChange: (v) => {
     clearTimeout(viewTimer);
@@ -409,7 +411,7 @@ function renderChatList() {
     const li = document.createElement('li');
     li.className = panel.chatId === c.id ? 'open' : '';
     li.title = c.summary || '';
-    li.innerHTML = `<div class="thumb">${iconHTML(c)}</div><div class="t"><div></div><small>${c.msg_count === 1 ? '1 messaggio' : `${c.msg_count} messaggi`}</small></div>
+    li.innerHTML = `<div class="thumb">${iconHTML(c)}</div><div class="t"><div></div><small>${busyChats.has(c.id) ? '<span class="busy-text">Claude sta rispondendo…</span>' : c.msg_count === 1 ? '1 messaggio' : `${c.msg_count} messaggi`}</small></div>
       <button class="del" title="Elimina la chat">🗑</button>`;
     li.querySelector('.t div').textContent = c.title;
     li.onclick = (e) => {
@@ -584,7 +586,15 @@ async function init() {
   await loadBoards();
   const last = localStorage.getItem('cc:board');
   await switchBoard(boardsCache.some(b => b.id === last) ? last : boardsCache[0].id, 0);
+  for (const id of await api.busy().catch(() => [])) busyChats.add(id);
+  board.render(); renderChatList();
   api.events((ev) => {
+    if (ev.type === 'chat-delta') panel.onDelta(ev.data);
+    if (ev.type === 'chat-busy') {
+      ev.data.busy ? busyChats.add(ev.data.chatId) : busyChats.delete(ev.data.chatId);
+      board.render(); renderChatList();
+      panel.onBusy(ev.data);
+    }
     if (ev.type === 'chat') chatUpdated(ev.data);
     if (ev.type === 'chat-deleted') {
       chats.delete(ev.data.id);

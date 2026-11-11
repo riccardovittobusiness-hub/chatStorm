@@ -130,7 +130,7 @@ route('GET', '/api/chats', () => db.listChats());
 route('GET', '/api/chats/:id', ({ id }) => {
   const chat = db.getChatPublic(id);
   if (!chat) throw Object.assign(new Error('Chat non trovata'), { status: 404 });
-  return { ...chat, messages: db.getMessages(id) };
+  return { ...chat, messages: db.getMessages(id), busy: running.has(id), partial: running.get(id)?.acc || '' };
 });
 route('POST', '/api/chats', async ({ body }) => {
   // Nuova chat semplice, "dirama" (forkOf) o "unisci" (mergeItems + boardId)
@@ -168,7 +168,9 @@ route('PATCH', '/api/chats/:id', ({ id, body }) => {
   chatUpdated(chat);
   return chat;
 });
-route('DELETE', '/api/chats/:id', ({ id }) => { db.deleteChat(id); broadcast('chat-deleted', { id }); return { ok: true }; });
+route('POST', '/api/chats/:id/stop', ({ id }) => { running.get(id)?.ctrl.abort(); return { ok: true }; });
+route('GET', '/api/busy', () => [...running.keys()]);
+route('DELETE', '/api/chats/:id', ({ id }) => { running.get(id)?.ctrl.abort(); db.deleteChat(id); broadcast('chat-deleted', { id }); return { ok: true }; });
 route('POST', '/api/chats/:id/summarize', async ({ id }) => {
   const chat = await ai.summarizeChat(id, db.getSettings());
   chatUpdated(chat);
@@ -188,39 +190,53 @@ route('POST', '/api/ai/clusters', async ({ body }) => ({ groups: await ai.cluste
 route('POST', '/api/ai/synthesis', async ({ body }) => ({ markdown: await ai.synthesize(body.boardId, db.getSettings(), body.itemIds) }));
 
 // ---------- Messaggio in streaming ----------
+// Le risposte continuano anche se il pannello si chiude o si cambia chat: si fermano solo con /stop.
+const running = new Map();   // chatId -> { ctrl, acc }
+const setBusy = (chatId, busy) => broadcast('chat-busy', { chatId, busy });
+
 async function handleMessage(req, res, chatId) {
   const body = await readBody(req);
   const chat = db.getChat(chatId);
   if (!chat) return send(res, 404, { error: 'Chat non trovata' });
   const text = String(body.text || '').trim();
   if (!text) return send(res, 400, { error: 'Messaggio vuoto' });
+  if (running.has(chatId)) return send(res, 409, { error: 'Claude sta già rispondendo in questa chat' });
 
   res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' });
-  const emit = (type, data) => res.write(`data: ${JSON.stringify({ type, data })}\n\n`);
-  const ctrl = new AbortController();
-  res.on('close', () => { if (!res.writableFinished) ctrl.abort(); });
+  let clientGone = false;
+  res.on('close', () => { clientGone = true; });
+  const emit = (type, data) => { if (!clientGone) res.write(`data: ${JSON.stringify({ type, data })}\n\n`); };
+  const job = { ctrl: new AbortController(), acc: '' };
+  running.set(chatId, job);
+  setBusy(chatId, true);
 
   db.addMessage(chatId, 'user', text);
   const s = db.getSettings();
   const extra = [chat.seed_context, chat.use_neighbor_context ? ai.neighborContext(chatId, body.boardId) : ''].filter(Boolean).join('\n\n');
-  let acc = '';
   try {
     const out = await streamChat({
       prompt: text, sessionId: chat.sdk_session_id, forkFromSession: chat.sdk_session_id ? null : chat.fork_from_session,
-      extraSystem: extra, settings: s, signal: ctrl.signal,
-      onDelta: (d) => { acc += d; emit('delta', d); },
+      extraSystem: extra, settings: s, signal: job.ctrl.signal,
+      onDelta: (d) => { job.acc += d; emit('delta', d); broadcast('chat-delta', { chatId, d, len: job.acc.length }); },
     });
-    const reply = out.text || acc;
+    if (job.ctrl.signal.aborted) throw new Error('Interrotto');
+    const reply = out.text || job.acc;
     db.addMessage(chatId, 'assistant', reply || '(nessuna risposta)');
     if (out.sessionId) db.updateChat(chatId, { sdk_session_id: out.sessionId, fork_from_session: null });
     emit('done', db.getChatPublic(chatId));
     chatUpdated(db.getChatPublic(chatId));
     afterReply(chatId);
   } catch (e) {
-    if (acc) db.addMessage(chatId, 'assistant', acc + '\n\n_(interrotto)_');
-    emit('error', ctrl.signal.aborted ? 'Interrotto' : String(e.message || e));
+    const stopped = job.ctrl.signal.aborted;
+    if (job.acc) db.addMessage(chatId, 'assistant', job.acc + '\n\n_(interrotto)_');
+    else if (!stopped) db.addMessage(chatId, 'assistant', `_(Errore: ${String(e.message || e).slice(0, 300)})_`);
+    emit('error', stopped ? 'Interrotto' : String(e.message || e));
+    chatUpdated(db.getChatPublic(chatId));
+  } finally {
+    running.delete(chatId);
+    setBusy(chatId, false);
   }
-  res.end();
+  if (!clientGone) res.end();
 }
 
 // ---------- Server ----------

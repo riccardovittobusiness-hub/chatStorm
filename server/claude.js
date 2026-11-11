@@ -112,7 +112,7 @@ async function mockStream(prompt, extraSystem, onDelta, signal) {
   for (const word of reply.split(/(\s+)/)) {
     if (signal?.aborted) break;
     text += word; onDelta?.(word);
-    await sleep(12);
+    await sleep(Number(process.env.CANVAS_MOCK_DELAY || 12));
   }
   return { text, sessionId: 'mock-' + Math.random().toString(36).slice(2) };
 }

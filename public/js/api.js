@@ -27,6 +27,8 @@ export const api = {
   createChat: (body = {}) => req('POST', '/api/chats', body),
   updateChat: (id, patch) => req('PATCH', `/api/chats/${id}`, patch),
   deleteChat: (id) => req('DELETE', `/api/chats/${id}`),
+  stopChat: (id) => req('POST', `/api/chats/${id}/stop`),
+  busy: () => req('GET', '/api/busy'),
   summarize: (id) => req('POST', `/api/chats/${id}/summarize`),
   icon: (id, refreshPrompt, mode) => req('POST', `/api/chats/${id}/icon`, { refreshPrompt, mode }),
 

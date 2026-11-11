@@ -9,7 +9,7 @@ const $ = (id) => document.getElementById(id);
 export class ChatPanel {
   constructor(o) {
     this.o = o; // { getBoardId, onOpenChange(chatId|null), onFork(chatId), onDelete(chatId), toast, chats }
-    this.chatId = null; this.abort = null; this.streaming = false;
+    this.chatId = null; this.streaming = false; this.live = null;
     this.el = $('chat-panel'); this.list = $('cp-messages'); this.input = $('cp-input');
     $('cp-close').onclick = () => this.close();
     $('cp-form').onsubmit = (e) => { e.preventDefault(); this.streaming ? this.stop() : this.send(); };
@@ -123,22 +123,31 @@ export class ChatPanel {
   }
 
   async open(chatId) {
-    if (this.streaming && chatId !== this.chatId) this.stop();
     if (chatId !== this.chatId) this.pane = null;
     this.chatId = chatId;
+    this.live = null;
     this.el.hidden = false;
     document.body.classList.add('chat-open');
     this.o.onOpenChange(chatId);
-    const data = await api.chat(chatId);
-    if (this.chatId !== chatId) return;
-    this.o.chats.set(chatId, { ...data, messages: undefined });
-    this.renderHeader();
-    this.renderMessages(data.messages);
+    await this.reload(chatId);
     setTimeout(() => this.input.focus(), 30);
   }
+  /** Ricarica i messaggi dal server; se Claude sta ancora rispondendo mostra la parte già scritta. */
+  async reload(chatId = this.chatId) {
+    const data = await api.chat(chatId);
+    if (this.chatId !== chatId) return;
+    const { messages, busy, partial, ...chat } = data;
+    this.o.chats.set(chatId, { ...this.o.chats.get(chatId), ...chat });
+    this.renderHeader();
+    this.renderMessages(messages);
+    this.live = null;
+    if (busy) this.startLive(chatId, partial || '');
+    this.setStreaming(!!busy);
+  }
+  /** La risposta continua in background: chiudere il pannello non la interrompe. */
   close() {
-    if (this.streaming) this.stop();
     this.chatId = null;
+    this.live = null;
     this.el.hidden = true;
     document.body.classList.remove('chat-open');
     this.o.onOpenChange(null);
@@ -182,34 +191,60 @@ export class ChatPanel {
 
   async send() {
     const text = this.input.value.trim();
-    if (!text || !this.chatId) return;
+    if (!text || !this.chatId || this.streaming) return;
     const chatId = this.chatId;
     this.input.value = '';
     this.addBubble('user', text);
-    const bubble = this.addBubble('assistant', '');
-    bubble.innerHTML = '<div class="spin"></div>';
-    this.list.scrollTop = this.list.scrollHeight;
+    this.startLive(chatId, '');
     this.setStreaming(true);
-    this.abort = new AbortController();
-    let acc = '', raf = 0;
-    const paint = () => { raf = 0; bubble.innerHTML = md(acc); const nearBottom = this.list.scrollHeight - this.list.scrollTop - this.list.clientHeight < 120; if (nearBottom) this.list.scrollTop = this.list.scrollHeight; };
     try {
       await this.o.beforeSend?.();
-      const chat = await api.sendMessage(chatId, text, this.o.getBoardId(), {
-        signal: this.abort.signal,
-        onDelta: (d) => { acc += d; if (!raf) raf = requestAnimationFrame(paint); },
-      });
-      paint();
-      if (chat) { this.o.chats.set(chat.id, chat); this.o.onChatUpdated(chat); }
+      const chat = await api.sendMessage(chatId, text, this.o.getBoardId(), { onDelta: () => {} });
+      if (chat) { this.o.chats.set(chat.id, { ...this.o.chats.get(chat.id), ...chat }); this.o.onChatUpdated(chat); }
     } catch (e) {
-      if (e.name === 'AbortError') { acc += '\n\n_(interrotto)_'; paint(); }
-      else { bubble.innerHTML = md(acc) + `<p class="err">Errore: ${e.message}</p>`; }
+      if (e.message !== 'Interrotto') this.o.toast('Risposta non riuscita: ' + e.message, { error: true, ms: 6000 });
     } finally {
-      this.setStreaming(false);
-      this.abort = null;
+      if (this.chatId === chatId) await this.reload(chatId).catch(() => {});
     }
   }
-  stop() { this.abort?.abort(); }
+
+  // ---------- Risposta in corso (arriva dagli eventi del server, anche per chat riaperte) ----------
+  startLive(chatId, text) {
+    const empty = this.list.querySelector('.empty-chat'); if (empty) empty.remove();
+    const el = document.createElement('div');
+    el.className = 'msg assistant live';
+    this.list.appendChild(el);
+    this.live = { chatId, text, el };
+    this.paintLive(true);
+  }
+  paintLive(force) {
+    const l = this.live; if (!l) return;
+    if (this.livePaint && !force) return;
+    this.livePaint = requestAnimationFrame(() => {
+      this.livePaint = 0;
+      if (!this.live?.el.isConnected) return;
+      const near = this.list.scrollHeight - this.list.scrollTop - this.list.clientHeight < 140;
+      this.live.el.innerHTML = this.live.text ? md(this.live.text) : '<div class="typing"><span></span><span></span><span></span></div>';
+      if (near) this.list.scrollTop = this.list.scrollHeight;
+    });
+  }
+  onDelta({ chatId, d, len }) {
+    if (chatId !== this.chatId) return;
+    if (!this.live) this.startLive(chatId, '');
+    const l = this.live;
+    if (len - d.length === l.text.length) { l.text += d; this.paintLive(); }
+    else if (len > l.text.length && !this.resyncing) {      // persi dei pezzi: riprendo il testo dal server
+      this.resyncing = true;
+      api.chat(chatId).then(c => { if (this.live && this.chatId === chatId && c.partial.length > this.live.text.length) { this.live.text = c.partial; this.paintLive(); } })
+        .catch(() => {}).finally(() => { this.resyncing = false; });
+    }
+  }
+  onBusy({ chatId, busy }) {
+    if (chatId !== this.chatId) return;
+    if (busy) { if (!this.live) this.startLive(chatId, ''); this.setStreaming(true); }
+    else setTimeout(() => { if (this.chatId === chatId) this.reload(chatId).catch(() => {}); }, 150);
+  }
+  stop() { if (this.chatId) api.stopChat(this.chatId).catch(() => {}); }
   setStreaming(on) {
     this.streaming = on;
     const b = $('cp-send');

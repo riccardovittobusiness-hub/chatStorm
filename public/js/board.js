@@ -176,7 +176,8 @@ export class Board {
       if (el.parentNode !== layer) layer.appendChild(el);
       const b = G.bounds(it);
       el.className = `item ${it.type}` + (this.sel.has(it.id) ? ' selected' : '') + (this.sel.size === 1 && this.sel.has(it.id) ? ' single' : '')
-        + (it.type === 'chat' && it.chatId === this.openChatId ? ' open' : '');
+        + (it.type === 'chat' && it.chatId === this.openChatId ? ' open' : '')
+        + (it.type === 'chat' && this.o.isBusy?.(it.chatId) ? ' busy' : '');
       Object.assign(el.style, { left: it.x + 'px', top: it.y + 'px', width: b.w + 'px', height: it.type === 'text' ? 'auto' : b.h + 'px', zIndex: idx });
       if (this.editing?.id === it.id) return;
       const chat = it.type === 'chat' ? this.o.getChat(it.chatId) : null;
