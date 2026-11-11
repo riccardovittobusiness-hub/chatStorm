@@ -11,7 +11,7 @@ import { fileURLToPath } from 'node:url';
 const PROJ = fileURLToPath(new URL('../', import.meta.url));
 const DATA = path.join(PROJ, 'data');
 const APP = path.join(os.homedir(), 'Applications', 'chatStorm.app');
-const INPUTS = ['mac/electron/main.js', 'mac/electron/package.json', 'mac/electron/icon.png', 'mac/AppIcon.icns', 'mac/aggiorna-app.sh'];
+const INPUTS = ['mac/electron/main.js', 'mac/electron/package.json', 'mac/electron/icon.png', 'mac/AppIcon.icns'];
 
 export let appUpdate = null;            // null | 'building'
 

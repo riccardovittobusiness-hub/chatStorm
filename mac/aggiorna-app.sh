@@ -31,10 +31,14 @@ BUILT="$OUT/chatStorm-darwin-$ARCH/chatStorm.app"
 [ -d "$BUILT" ] || fail "app costruita non trovata"
 codesign --force --deep --sign - "$BUILT" || fail "firma locale non riuscita"
 
-# chiudo la versione aperta (vecchio e nuovo nome): chiude anche il server, questo script continua
-/usr/bin/pkill -f "ClaudioStorm.app/Contents/MacOS/" 2>/dev/null
-/usr/bin/pkill -f "chatStorm.app/Contents/MacOS/" 2>/dev/null
-sleep 2
+# chiudo la versione aperta (vecchio e nuovo nome) e il suo server, così la nuova parte pulita.
+# Questo script è staccato da entrambi e continua.
+for sig in TERM KILL; do
+  /usr/bin/killall -$sig ClaudioStorm chatStorm >/dev/null 2>&1
+  /usr/bin/pkill -$sig -f "(ClaudioStorm|chatStorm)\.app/Contents/MacOS/" >/dev/null 2>&1
+  /usr/bin/pkill -$sig -f "server/index\.js" >/dev/null 2>&1
+  sleep 2
+done
 
 mkdir -p "$APPS"
 rm -rf "$APPS/chatStorm.app" "$APPS/ClaudioStorm.app"
