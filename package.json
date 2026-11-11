@@ -1,0 +1,17 @@
+{
+  "name": "claude-canvas",
+  "version": "0.1.0",
+  "description": "Lavagna per brainstorming: ogni chat con Claude è un'icona su una mappa",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning server/index.js",
+    "mock": "node --disable-warning=ExperimentalWarning server/index.js --mock"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "latest"
+  }
+}

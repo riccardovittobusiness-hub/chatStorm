@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Claude Canvas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+  <div id="mock-banner" hidden>Modalità simulata: le risposte di Claude sono finte. Avvia con <code>avvia.command</code> o <code>npm start</code> per usare Claude davvero.</div>
+
+  <div id="app">
+    <!-- Barra laterale -->
+    <aside id="sidebar">
+      <div class="brand">
+        <svg class="cube" viewBox="0 0 32 32" aria-hidden="true">
+          <path d="M16 3 28 9.5v13L16 29 4 22.5v-13Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+          <path d="M4 9.5 16 16l12-6.5M16 16v13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+          <path d="M16 16 28 9.5v13L16 29Z" fill="currentColor" opacity=".28"/>
+        </svg>
+        <span>Canvas</span>
+        <button class="ghost" id="btn-collapse" title="Nascondi pannello">⟨</button>
+      </div>
+
+      <section class="maps">
+        <header><h2>Mappe</h2><span><button class="ghost add" id="btn-overview" title="Vedi tutte le mappe (M)">⧉</button><button class="ghost add" id="btn-new-board" title="Nuova mappa">＋</button></span></header>
+        <ul id="board-list"></ul>
+      </section>
+
+      <section class="chats">
+        <header><h2>Chat in questa mappa <span id="chat-count"></span></h2></header>
+        <input id="chat-search" type="search" placeholder="Cerca per titolo o contenuto">
+        <ul id="chat-list"></ul>
+      </section>
+
+      <footer>
+        <button class="ghost" id="btn-settings">Impostazioni</button>
+        <button class="ghost" id="btn-help">Scorciatoie</button>
+      </footer>
+    </aside>
+    <button id="btn-expand" title="Mostra pannello" hidden>⟩</button>
+
+    <!-- Spazio blu con il piano ruotabile -->
+    <main id="stage">
+      <div id="drag-strip"></div>
+      <div id="toolbar">
+        <div class="group">
+          <button data-tool="select" class="active" title="Seleziona (V)">
+            <svg viewBox="0 0 20 20"><path d="M5 3l10 6-4.5 1.3L13 16l-2 1-2.6-5.6L5 14Z" fill="currentColor"/></svg></button>
+          <button data-tool="hand" title="Sposta la vista (H, oppure tieni Spazio)">
+            <svg viewBox="0 0 20 20"><path d="M7 9V4.5a1.2 1.2 0 0 1 2.4 0V9m0-1V3.5a1.2 1.2 0 0 1 2.4 0V9m0-.5V4.8a1.2 1.2 0 0 1 2.4 0V11c0 3.5-2.2 6-5.4 6-2.2 0-3.4-1-4.6-3L3 10.6a1.2 1.2 0 0 1 2-1.3L7 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></button>
+        </div>
+        <div class="sep"></div>
+        <div class="group">
+          <button id="add-chat" title="Nuova chat (C, o doppio clic sulla lavagna)"><span class="ico">💬</span><span class="lbl">Chat</span></button>
+          <button id="add-note" title="Nota (N)"><span class="ico">▤</span><span class="lbl">Nota</span></button>
+          <button id="add-text" title="Testo (T)"><span class="ico">T</span><span class="lbl">Testo</span></button>
+          <button id="add-frame" title="Riquadro (F)"><span class="ico">▢</span><span class="lbl">Riquadro</span></button>
+        </div>
+        <div class="sep"></div>
+        <div class="dropdown">
+          <button title="Disposizione automatica"><span class="ico">⊞</span><span class="lbl">Disponi</span></button>
+          <div class="menu">
+            <button data-layout="grid">Griglia <kbd>Alt+G</kbd></button>
+            <button data-layout="tree">Albero, segue le frecce <kbd>Alt+L</kbd></button>
+            <button data-layout="force">Grafo, avvicina i collegati <kbd>Alt+K</kbd></button>
+            <hr>
+            <label class="check"><input type="checkbox" id="snap-toggle"> Aggancia alla griglia</label>
+          </div>
+        </div>
+        <div class="dropdown">
+          <button class="claude" title="Strumenti di Claude per la visione d'insieme"><span class="ico">✦</span><span class="lbl">Claude</span></button>
+          <div class="menu">
+            <button data-ai="links">Suggerisci collegamenti</button>
+            <button data-ai="clusters">Raggruppa per temi</button>
+            <button data-ai="synthesis">Sintesi della mappa o della selezione</button>
+            <button data-ai="merge">Unisci la selezione in una nuova chat</button>
+          </div>
+        </div>
+        <div class="sep"></div>
+        <div class="group">
+          <button id="undo" title="Annulla (Ctrl+Z)">↶</button>
+          <button id="redo" title="Ripeti (Ctrl+Shift+Z)">↷</button>
+        </div>
+        <div class="dropdown right">
+          <button title="Esporta"><span class="ico">⇩</span></button>
+          <div class="menu">
+            <button id="export-png">Esporta PNG</button>
+            <button id="export-json">Esporta JSON</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="suggest-bar" hidden>
+        <span id="suggest-text"></span>
+        <button id="suggest-accept">Accetta tutti</button>
+        <button id="suggest-reject">Scarta tutti</button>
+      </div>
+
+      <div id="plane">
+        <div id="canvas" tabindex="0">
+          <div id="grid-bg"></div>
+          <div id="world">
+            <div id="layer-frames"></div>
+            <svg id="edges" xmlns="http://www.w3.org/2000/svg"><g id="edge-root"></g><path id="temp-edge" /></svg>
+            <div id="layer-items"></div>
+            <div id="layer-labels"></div>
+          </div>
+          <div id="marquee" hidden></div>
+          <div id="ctx-toolbar" hidden></div>
+          <div id="empty-hint" hidden>
+            <p class="big">Doppio clic per iniziare una chat</p>
+            <p>Ogni conversazione diventa un'icona che puoi spostare e collegare.</p>
+          </div>
+        </div>
+      </div>
+
+      <div id="bottom-bar">
+        <button id="wheel-mode" title="Cosa fa la rotella del mouse">Rotella: zoom</button>
+        <button id="zoom-out" title="Riduci">−</button>
+        <button id="zoom-label" title="Adatta alla vista (Shift+1)">100%</button>
+        <button id="zoom-in" title="Ingrandisci">＋</button>
+      </div>
+      <canvas id="minimap" width="200" height="130"></canvas>
+
+      <nav id="face-nav" aria-label="Cambia mappa">
+        <button id="face-prev" title="Mappa precedente (Q)">‹</button>
+        <div class="face-info">
+          <span id="face-name"></span>
+          <div id="face-dots"></div>
+        </div>
+        <button id="face-next" title="Mappa successiva (E)">›</button>
+        <button id="face-all" title="Vedi tutte le mappe (M)">⧉</button>
+      </nav>
+
+      <section id="overview" hidden tabindex="-1" aria-label="Tutte le mappe">
+        <header class="ov-head">
+          <div>
+            <h2 id="ov-title"></h2>
+            <p>Trascina o usa le frecce per far girare le mappe. Clic su una mappa per entrarci.</p>
+          </div>
+          <button id="ov-close" title="Torna alla mappa (Esc)">✕</button>
+        </header>
+        <div id="ov-scene"><div id="ov-ring"></div></div>
+        <div class="ov-nav">
+          <button id="ov-prev" title="Ruota a sinistra (←)">‹</button>
+          <button id="ov-next" title="Ruota a destra (→)">›</button>
+        </div>
+      </section>
+
+      <div id="toast" hidden></div>
+    </main>
+
+    <!-- Pannello chat -->
+    <aside id="chat-panel" hidden>
+      <div class="cp-head">
+        <div class="cp-icon" id="cp-icon" title="Rigenera l'icona"></div>
+        <input id="cp-title" spellcheck="false" aria-label="Titolo della chat">
+        <button class="ghost" id="cp-close" title="Chiudi (Esc)">✕</button>
+      </div>
+      <div class="cp-tools">
+        <button id="cp-info-toggle">Icona e riassunto</button>
+        <button id="cp-fork" title="Nuova chat che continua da questa">⑂ Dirama</button>
+        <label class="check" title="Invia a Claude i riassunti delle chat collegate con frecce"><input type="checkbox" id="cp-neighbors"> Contesto dai collegati</label>
+        <button id="cp-delete" class="danger ghost" title="Elimina la chat" aria-label="Elimina la chat">🗑</button>
+      </div>
+      <div id="cp-info" hidden>
+        <div class="ie">
+          <div class="ie-top">
+            <div class="ie-preview" id="ie-preview"></div>
+            <div>
+              <div class="ie-modes" id="ie-modes" role="tablist" aria-label="Tipo di icona">
+                <button data-mode="svg">✦ Disegnata da Claude</button>
+                <button data-mode="badge">Aa Badge</button>
+                <button data-mode="image">Immagine AI</button>
+              </div>
+              <p class="err" id="cp-icon-error"></p>
+            </div>
+          </div>
+          <div class="ie-pane" data-pane="svg">
+            <p>Claude legge il riassunto della chat e disegna un'icona vettoriale nei toni del blu.</p>
+            <div class="row"><button id="ie-draw" class="primary">Disegna con Claude</button><button id="ie-draw-full">Riassumi e ridisegna</button></div>
+          </div>
+          <div class="ie-pane" data-pane="badge">
+            <div class="ie-row"><span>Contenuto</span><div class="seg" id="ie-kind"></div><input id="ie-text" maxlength="4" aria-label="Testo del badge"></div>
+            <div class="ie-row"><span>Forma</span><div class="seg shapes" id="ie-shape"></div></div>
+            <div class="ie-row"><span>Colore</span><div class="swatches" id="ie-colors"></div><input type="color" id="ie-color" aria-label="Colore personalizzato"></div>
+            <div class="ie-row"><span>Stile</span><div class="seg" id="ie-style"><button data-v="gradient">Sfumato</button><button data-v="solid">Pieno</button></div></div>
+          </div>
+          <div class="ie-pane" data-pane="image">
+            <p>Genera un'immagine con il servizio scelto nelle impostazioni (Pollinations o Cloudflare).</p>
+            <div class="row"><button id="cp-reicon">Nuova immagine</button><button id="cp-reicon-full">Riassumi e rigenera</button></div>
+          </div>
+        </div>
+        <div class="kv"><b>Riassunto</b><p id="cp-summary"></p></div>
+        <div class="kv"><b>Parole chiave</b><p id="cp-keywords"></p></div>
+        <div class="kv"><b>Descrizione visiva usata per l'icona</b><p id="cp-prompt"></p></div>
+        <div class="row"><button id="cp-resummarize">Aggiorna riassunto</button></div>
+      </div>
+      <div id="cp-messages"></div>
+      <form id="cp-form">
+        <textarea id="cp-input" rows="3" placeholder="Scrivi a Claude. Invio per inviare, Shift+Invio per andare a capo."></textarea>
+        <button id="cp-send" type="submit">Invia</button>
+      </form>
+    </aside>
+  </div>
+
+  <!-- Conferma -->
+  <dialog id="confirm-dialog">
+    <form method="dialog">
+      <h2 id="confirm-title"></h2>
+      <p id="confirm-body"></p>
+      <div class="dialog-actions">
+        <button value="cancel" id="confirm-cancel">Annulla</button>
+        <button value="ok" id="confirm-ok" class="danger-solid"></button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Impostazioni -->
+  <dialog id="settings-dialog">
+    <form method="dialog" id="settings-form">
+      <h2>Impostazioni</h2>
+      <fieldset>
+        <legend>Icone delle chat</legend>
+        <label class="radio"><input type="radio" name="iconSource" value="claude"> Disegnate da Claude <small>icone vettoriali, nessun servizio esterno</small></label>
+        <label class="radio"><input type="radio" name="iconSource" value="badge"> Badge standard <small>lettere, numeri o simboli che modifichi tu</small></label>
+        <label class="radio"><input type="radio" name="iconSource" value="image"> Immagine AI <small>Pollinations o Cloudflare</small></label>
+        <label class="check"><input type="checkbox" name="autoIcon"> Crea l'icona dopo il primo scambio</label>
+        <div data-source="image" class="sub">
+          <label class="radio"><input type="radio" name="imageProvider" value="pollinations"> Pollinations.ai <small>funziona anche senza chiave, con limiti</small></label>
+          <label class="radio"><input type="radio" name="imageProvider" value="cloudflare"> Cloudflare Workers AI <small>FLUX, quota gratuita giornaliera</small></label>
+          <div data-provider="pollinations">
+            <label>API key Pollinations <small>facoltativa, si crea su <a href="https://enter.pollinations.ai" target="_blank" rel="noopener">enter.pollinations.ai</a></small>
+              <input name="pollinationsKey" autocomplete="off" placeholder="sk_…"></label>
+          </div>
+          <div data-provider="cloudflare">
+            <label>Account ID Cloudflare <input name="cloudflareAccountId" autocomplete="off"></label>
+            <label>API token Workers AI <small>Dashboard, poi AI, Workers AI, Use REST API</small>
+              <input name="cloudflareToken" autocomplete="off"></label>
+          </div>
+          <label>Stile grafico delle immagini
+            <textarea name="iconStyle" rows="2"></textarea></label>
+          <div class="presets" id="style-presets"></div>
+          <div class="row"><button type="button" id="test-image">Prova generazione</button><span id="test-result"></span></div>
+        </div>
+      </fieldset>
+      <fieldset>
+        <legend>Claude</legend>
+        <label>Modello per le chat <input name="chatModel" placeholder="predefinito, oppure sonnet, opus"></label>
+        <label>Modello per riassunti e strumenti della mappa <input name="utilityModel" placeholder="predefinito, oppure haiku per consumare meno"></label>
+        <label>Aggiorna il riassunto ogni N messaggi <input name="resummarizeEvery" type="number" min="2" max="50"></label>
+        <label>Lingua <input name="language"></label>
+        <label class="check"><input type="checkbox" name="webTools"> Permetti a Claude di cercare sul web nelle chat</label>
+      </fieldset>
+      <div class="dialog-actions">
+        <button value="cancel" formnovalidate>Annulla</button>
+        <button value="save" class="primary" id="settings-save">Salva</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="help-dialog">
+    <h2>Scorciatoie</h2>
+    <div class="help-grid">
+      <div><h3>Lavagna</h3>
+        <p><kbd>Doppio clic</kbd> sulla lavagna: nuova chat</p>
+        <p><kbd>Doppio clic</kbd> su un'icona: apri la chat</p>
+        <p><kbd>Q</kbd> / <kbd>E</kbd> ruota alla mappa precedente / successiva</p>
+        <p><kbd>M</kbd> vista d'insieme di tutte le mappe</p>
+        <p><kbd>Spazio</kbd> + trascina, o tasto centrale: sposta la vista</p>
+        <p><kbd>Rotella</kbd> o <kbd>Ctrl</kbd>+rotella: zoom</p>
+        <p><kbd>Shift+1</kbd> adatta alla vista</p>
+        <p><kbd>V</kbd> seleziona, <kbd>H</kbd> mano</p>
+        <p><kbd>C</kbd> chat, <kbd>N</kbd> nota, <kbd>T</kbd> testo, <kbd>F</kbd> riquadro</p>
+        <p><kbd>Canc</kbd> elimina, <kbd>Ctrl+D</kbd> duplica una nota</p>
+        <p><kbd>Ctrl+Z</kbd> annulla, <kbd>Ctrl+Shift+Z</kbd> ripeti</p>
+      </div>
+      <div><h3>Allinea e disponi</h3>
+        <p><kbd>Alt+A</kbd> a sinistra, <kbd>Alt+D</kbd> a destra</p>
+        <p><kbd>Alt+W</kbd> in alto, <kbd>Alt+S</kbd> in basso</p>
+        <p><kbd>Alt+H</kbd> / <kbd>Alt+V</kbd> centra</p>
+        <p><kbd>Alt+Shift+H</kbd> / <kbd>Alt+Shift+V</kbd> distribuisci</p>
+        <p><kbd>Alt+G</kbd> griglia, <kbd>Alt+L</kbd> albero, <kbd>Alt+K</kbd> grafo</p>
+        <h3>Icone e frecce</h3>
+        <p><kbd>]</kbd> / <kbd>[</kbd> ingrandisci / riduci l'icona</p>
+        <p><kbd>=</kbd> uguaglia le icone selezionate</p>
+        <p>Trascina dai pallini laterali per creare una freccia</p>
+        <p><kbd>L</kbd> collega gli elementi selezionati in ordine</p>
+      </div>
+    </div>
+    <form method="dialog"><button class="primary">Chiudi</button></form>
+  </dialog>
+
+  <script type="module" src="/js/app.js"></script>
+</body>
+</html>

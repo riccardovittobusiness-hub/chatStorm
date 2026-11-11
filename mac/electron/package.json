@@ -1,0 +1,12 @@
+{
+  "name": "claudiostorm",
+  "productName": "ClaudioStorm",
+  "version": "0.3.0",
+  "description": "ClaudioStorm: lavagna di brainstorming con Claude",
+  "main": "main.js",
+  "private": true,
+  "devDependencies": {
+    "electron": "latest",
+    "@electron/packager": "latest"
+  }
+}
