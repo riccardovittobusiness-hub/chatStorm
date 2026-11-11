@@ -1,6 +1,6 @@
 // Funzioni "visione d'insieme": riassunto→prompt icona, collegamenti, temi, sintesi.
 import * as db from './db.js';
-import { oneShot, oneShotJSON } from './claude.js';
+import { oneShot, oneShotJSON } from './model.js';
 import { sanitizeSvg } from './svg.js';
 import { generateImage, saveIcon } from './images.js';
 
@@ -8,7 +8,7 @@ const MAX_TRANSCRIPT = 14_000;
 
 function transcript(chatId) {
   const msgs = db.getMessages(chatId);
-  let out = msgs.map(m => `${m.role === 'user' ? 'UTENTE' : 'CLAUDE'}: ${m.content}`).join('\n\n');
+  let out = msgs.map(m => `${m.role === 'user' ? 'UTENTE' : 'ASSISTENTE'}: ${m.content}`).join('\n\n');
   if (out.length > MAX_TRANSCRIPT) {
     // tieni l'inizio (il tema) e la parte più recente
     out = out.slice(0, 4000) + '\n\n[...]\n\n' + out.slice(-(MAX_TRANSCRIPT - 4000));
@@ -56,7 +56,7 @@ export function fullImagePrompt(chat, settings) {
 const SVG_PALETTE = 'navy #1B1B39, blu #3965FA, blu scuro #2347D6, azzurro #99B7FC, ghiaccio #E9EBFF, bianco #FFFFFF, giallo #FFD23F (solo come accento)';
 const SVG_BACKGROUNDS = ['#3965FA', '#1B1B39', '#E9EBFF', '#2347D6'];
 
-/** Claude disegna un'icona SVG che rappresenta la chat. Restituisce il codice SVG già ripulito. */
+/** Il modello disegna un'icona SVG che rappresenta la chat. Restituisce il codice SVG già ripulito. */
 export async function drawSvgIcon(chat, settings) {
   const prompt = `TASK:SVG
 Disegna l'icona di una conversazione di brainstorming, come l'icona di un'app moderna.
@@ -82,7 +82,7 @@ Regole:
 }
 
 /**
- * Genera (o rigenera) l'icona. mode: 'svg' (Claude disegna) o 'image' (servizio di immagini).
+ * Genera (o rigenera) l'icona. mode: 'svg' (disegnata dal modello) o 'image' (servizio di immagini).
  * Se manca il riassunto, o refreshPrompt è vero, prima riassume la chat.
  */
 export async function generateIcon(chatId, settings, { refreshPrompt = false, mode, onUpdate } = {}) {
@@ -103,7 +103,7 @@ export async function generateIcon(chatId, settings, { refreshPrompt = false, mo
 
 // ---------- Strumenti sulla mappa ----------
 
-/** Descrive i nodi di una mappa per Claude. Riassume prima le chat che ne sono prive. */
+/** Descrive i nodi di una mappa per il modello. Riassume prima le chat che ne sono prive. */
 async function describeNodes(board, settings, itemIds) {
   const items = board.state.items.filter(i => (!itemIds || itemIds.includes(i.id)) && i.type !== 'frame');
   const lines = [];

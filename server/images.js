@@ -2,7 +2,7 @@
 import { writeFileSync, unlinkSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { ICON_DIR } from './db.js';
-import { MOCK } from './claude.js';
+import { MOCK } from './model.js';
 
 const SIZE = 512;
 

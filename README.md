@@ -1,14 +1,14 @@
 # chatStorm
 
-**Il brainstorming con Claude, visto dall'alto.**
+**Il brainstorming con ChatGPT, visto dall'alto.**
 
 Quando si ragiona su un'idea con un assistente AI, le conversazioni si accumulano in un elenco verticale e il quadro d'insieme si perde: quale chat approfondiva cosa, dove era nata un'alternativa, quali idee si contraddicono. chatStorm trasforma ogni conversazione in un oggetto da disporre nello spazio.
 
-Ogni chat diventa un'**icona** sulla lavagna: dopo i primi messaggi Claude le dà un titolo, ne scrive un riassunto e disegna un'icona che ne rappresenta il contenuto. In alternativa puoi usare badge con lettere, numeri o simboli, scegliendo forma e colore. Le icone si trascinano come sul desktop, si ingrandiscono, si allineano e si collegano con frecce etichettate ("approfondisce", "contraddice", "dipende da"). Accanto alle chat puoi aggiungere note, testi e riquadri tematici, come su una lavagna di Miro.
+Ogni chat diventa un'**icona** sulla lavagna: dopo i primi messaggi il modello le dà un titolo, ne scrive un riassunto e disegna un'icona che ne rappresenta il contenuto. In alternativa puoi usare badge con lettere, numeri o simboli, scegliendo forma e colore. Le icone si trascinano come sul desktop, si ingrandiscono, si allineano e si collegano con frecce etichettate ("approfondisce", "contraddice", "dipende da"). Accanto alle chat puoi aggiungere note, testi e riquadri tematici, come su una lavagna di Miro.
 
 Ogni progetto vive su una **mappa**, e le mappe sono le facce di un piano che ruota in 3D: si passa dall'una all'altra girando il piano, come in Fez.
 
-Claude non è solo dentro le chat, ma lavora anche sulla mappa:
+L'AI non è solo dentro le chat, ma lavora anche sulla mappa:
 - **Suggerisce collegamenti** tra idee che non avevi messo in relazione, spiegando perché.
 - **Raggruppa per temi** le chat e le note in riquadri.
 - **Sintetizza** la mappa o una selezione: idee principali, tensioni, domande aperte, lacune.
@@ -16,14 +16,15 @@ Claude non è solo dentro le chat, ma lavora anche sulla mappa:
 - **Unisce** più chat in una conversazione nuova che parte dai loro riassunti.
 - Ogni chat può ricevere il **contesto delle chat collegate** con le frecce.
 
-L'app gira sul tuo computer e usa il tuo abbonamento Claude tramite Claude Code, senza chiavi API a consumo. Chat, mappe e icone restano in un archivio locale; le icone le disegna Claude, oppure sono badge che personalizzi tu.
+L'app gira sul tuo computer e usa **ChatGPT tramite Codex di OpenAI**, con il tuo abbonamento ChatGPT (Plus o Pro), senza chiavi API a consumo. Chat, mappe e icone restano in un archivio locale; le icone le disegna il modello, oppure sono badge che personalizzi tu.
 
 ---
 
 ## Requisiti
 - **Node.js 22.13 o più recente** (`node --version`)
-- **Claude Code installato e collegato al tuo account**: esegui `claude` una volta nel terminale e fai `/login` con il tuo abbonamento.
-- Controlla che la variabile `ANTHROPIC_API_KEY` **non** sia impostata, altrimenti l'SDK userebbe la API key (a consumo) invece dell'abbonamento.
+- **Un account ChatGPT Plus o Pro.** Il login si fa una volta con `avvia.command` (oppure `npx codex login` dalla cartella
+  del progetto), e vale anche se hai già fatto l'accesso nell'app Codex.
+- Le variabili `OPENAI_API_KEY` e `CODEX_API_KEY` vengono ignorate: l'app usa il tuo abbonamento, non una API key a consumo.
 
 ## Avvio
 **App desktop per Mac:** apri la cartella `mac` e fai doppio clic su **`crea-app.command`** (una volta sola).
@@ -35,34 +36,32 @@ L'app **si aggiorna da sola**: se cambiano nome, icona o `mac/electron`, all'ape
 **Importante:** tieni la cartella del progetto nella tua cartella Inizio (per esempio `~/claude-canvas`), non in Download,
 Scrivania o Documenti: macOS impedisce all'app di leggere quelle cartelle protette.
 
-**Primo avvio / da Terminale:** doppio clic su **`avvia.command`**. La prima volta installa Claude Code (se manca), apre il login
-al tuo account Claude e installa le dipendenze; le volte successive avvia soltanto l'app.
+**Primo avvio / da Terminale:** doppio clic su **`avvia.command`**. La prima volta installa le dipendenze e apre il login
+al tuo account ChatGPT; le volte successive avvia soltanto l'app.
 
 In alternativa, da terminale:
 ```bash
-cd claude-canvas
+cd ClaudioStorm        # la cartella del progetto
 npm install
 npm start
 ```
 Apri **http://localhost:4317**. Tieni aperta la finestra del Terminale finché usi l'app.
 
-Per provare l'interfaccia senza usare Claude: `npm run mock` (risposte e icone simulate).
+Per provare l'interfaccia senza usare ChatGPT: `npm run mock` (risposte e icone simulate).
 
-## Claude e ChatGPT (Codex)
-Ogni chat può usare **Claude** (tramite Claude Code) o **ChatGPT** (tramite Codex di OpenAI), entrambi con il tuo abbonamento.
-- Il modello si sceglie per ogni chat: menu ▾ accanto a **Chat** nella barra, oppure il pulsante **Claude / ChatGPT**
-  in alto nel pannello chat (prima del primo messaggio). Le chat di ChatGPT hanno il segno **GPT** sull'icona.
-- In ⚙ Impostazioni → Modelli scegli il modello predefinito per le nuove chat e quello per riassunti, icone e strumenti della mappa.
-  Sotto ci sono i selettori dei modelli: per Claude l'elenco arriva da Claude Code (quindi è quello del tuo account),
-  per ChatGPT ci sono GPT-5.6 Sol, Terra e Luna. Con **Altro…** puoi scrivere il nome di qualsiasi altro modello.
-- Per ChatGPT serve aver fatto l'accesso a Codex con il tuo account ChatGPT (per esempio nell'app Codex). Il supporto Codex
-  (`@openai/codex-sdk`) viene installato da `avvia.command`, o automaticamente al primo utilizzo.
+## ChatGPT (Codex)
+Le chat, i riassunti, le icone e gli strumenti della mappa usano **ChatGPT tramite il Codex SDK di OpenAI**
+(`@openai/codex-sdk`), con il login ChatGPT del tuo computer.
+- In ⚙ Impostazioni → Modello scegli il modello: GPT-5.6 Sol, Terra o Luna, oppure **Altro…** per scriverne un altro.
 - Codex lavora in una cartella vuota in sola lettura (`data/codex-workspace`): non vede l'archivio delle chat.
-- "Dirama" su una chat di ChatGPT crea una nuova chat che riceve la conversazione come contesto.
+- "Dirama" crea una nuova chat che riceve la conversazione come contesto.
+- Perché solo ChatGPT: OpenAI permette ai progetti open source e a quelli personali che girano in locale di usare
+  l'abbonamento ChatGPT dei loro utenti. Anthropic invece chiede ai prodotti costruiti con l'Agent SDK di Claude
+  di usare una API key a consumo, quindi questa versione pubblica non include Claude.
 
 ## Lingua
 In ⚙ Impostazioni → Generale scegli **Italiano** o **English**: cambia la lingua dell'interfaccia e quella in cui rispondono
-Claude e ChatGPT (riassunti, titoli e strumenti della mappa compresi).
+il modello (riassunti, titoli e strumenti della mappa compresi).
 
 ## Design
 L'interfaccia usa l'identità visiva di [Ci siamo](https://www.cisiamoagency.com/): fondo ghiaccio marmorizzato con grana, superfici navy
@@ -72,14 +71,14 @@ icona dell'app in `mac/icon.svg`).
 
 ## Icone delle chat
 Si sceglie in ⚙ **Impostazioni → Icone delle chat**:
-- **Disegnate da Claude** (predefinito): dopo il primo scambio il modello scelto per gli strumenti (Claude o ChatGPT) riassume la chat e disegna un'icona vettoriale (SVG)
-  a tratto spesso, nello stile del logo, con la palette del marchio. Nessun servizio esterno: usa il tuo abbonamento. L'SVG viene ripulito da script e risorse esterne.
+- **Disegnate dall'AI** (predefinito): dopo il primo scambio il modello riassume la chat e disegna un'icona vettoriale (SVG)
+  a tratto spesso, nello stile del logo, con la palette del marchio. Nessun servizio in più: usa il tuo abbonamento. L'SVG viene ripulito da script e risorse esterne.
 - **Badge standard**: lettere, numero o simbolo, con forma (arrotondato, cerchio, quadrato, esagono, rombo), colore e stile
   (sfumato o pieno) modificabili.
 - **Immagine AI**: Pollinations.ai (anche senza chiave) o Cloudflare Workers AI, con chiave nelle impostazioni.
 
 Ogni chat si può cambiare dal pannello chat → **Icona e riassunto**, oppure dal pulsante **🎨 Icona** sopra l'icona selezionata.
-Con più chat selezionate: **#** le numera in ordine di selezione, **Aa** mette le iniziali, **✦** le fa ridisegnare a Claude.
+Con più chat selezionate: **#** le numera in ordine di selezione, **Aa** mette le iniziali, **✦** le fa ridisegnare all'AI.
 
 ## Mappe
 - Ogni mappa è una faccia di un piano che ruota in 3D: frecce **‹ ›** in basso, tasti **Q** / **E**, o clic su una mappa nel pannello a sinistra.
@@ -97,30 +96,30 @@ Con più chat selezionate: **#** le numera in ordine di selezione, **Aa** mette 
 - **Frecce**: si trascinano dai pallini laterali; etichetta, forma (curva/dritta/gomito), tratteggio, punte, colore, inversione.
 - **Allinea e distribuisci** (barra contestuale o Alt+A/D/W/S/H/V), **disposizioni automatiche**: griglia, albero (segue le frecce), grafo a forze.
 - **Annulla/ripeti**, salvataggio automatico, ricerca nelle chat della mappa, esporta PNG e JSON.
-- **Strumenti di Claude** (menu ✦ Claude):
+- **Strumenti AI** (menu ✦ AI):
   - *Suggerisci collegamenti*: frecce gialle tratteggiate con relazione e motivazione; accetti o scarti.
   - *Raggruppa per temi*: crea riquadri tematici e vi dispone gli elementi.
   - *Sintesi*: post-it con idee principali, tensioni, domande aperte, lacune (della selezione o di tutta la mappa).
   - *Unisci*: nuova chat che parte dai riassunti degli elementi selezionati.
-  - *Dirama*: nuova chat che continua il contesto completo di un'altra (fork della sessione).
+  - *Dirama*: nuova chat che riceve tutta la conversazione di un'altra come contesto.
   - *Contesto dai collegati*: ogni chat può ricevere i riassunti dei nodi collegati con frecce.
 
 Premi `?` nell'app per l'elenco delle scorciatoie.
 
 ## Dati e privacy
 - Tutto l'archivio sta in `data/` (`canvas.db` SQLite + `data/icons/`). Per fare un backup copia quella cartella.
-- I messaggi vengono comunque inviati ad Anthropic per generare le risposte; la conservazione dipende dalle tue impostazioni privacy su claude.ai.
+- I messaggi vengono comunque inviati a OpenAI per generare le risposte; la conservazione dipende dalle impostazioni del tuo account ChatGPT.
 - Il server ascolta solo su `127.0.0.1`.
 - Le chiavi dei servizi immagini sono salvate in chiaro in `data/canvas.db`: non condividere quella cartella.
 
 ## Struttura
 ```
 server/index.js    server HTTP, API, streaming
-server/claude.js   ponte con l'Agent SDK di Claude (+ modalità simulata)
-server/codex.js    ponte con il Codex SDK di OpenAI (ChatGPT)
+server/model.js    ponte verso il modello (+ modalità simulata)
+server/codex.js    Codex SDK di OpenAI (ChatGPT)
 server/ai.js       riassunto → prompt icona, collegamenti, temi, sintesi, contesto dai collegati
 server/images.js   Pollinations / Cloudflare
-server/svg.js      pulizia degli SVG disegnati da Claude
+server/svg.js      pulizia degli SVG disegnati dal modello
 mac/electron/      app desktop (Electron)
 mac/crea-app.command  costruisce e installa chatStorm.app (solo la prima volta)
 mac/aggiorna-app.sh   ricostruisce l'app in background quando cambia (lo lancia il server)
@@ -129,7 +128,6 @@ public/            interfaccia (JavaScript puro, nessuna build)
 ```
 
 ## Limiti noti
-- Le chat esistenti su claude.ai non sono importabili: questa app ha un suo archivio.
-- I caratteri (Bricolage Grotesque, Instrument Sans) arrivano da Google Fonts; offline si usano quelli di sistema.
-- Nelle chat Claude ha solo ricerca web e lettura pagine (niente file o comandi), per sicurezza.
-- Modelli: lascia vuoto per il predefinito, oppure scrivi un alias come `sonnet`, `opus`, `haiku`.
+- Le chat esistenti su chatgpt.com non sono importabili: questa app ha un suo archivio.
+- I caratteri (Bricolage Grotesque, Fraunces) arrivano da Google Fonts; offline si usano quelli di sistema.
+- Nelle chat Codex lavora in sola lettura in una cartella vuota, con al massimo la ricerca web: niente file o comandi sul tuo computer.

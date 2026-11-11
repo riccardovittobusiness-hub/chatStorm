@@ -58,24 +58,20 @@ db.exec(`
 const chatCols = new Set(db.prepare('PRAGMA table_info(chats)').all().map(c => c.name));
 if (!chatCols.has('icon_mode')) db.exec('ALTER TABLE chats ADD COLUMN icon_mode TEXT');   // null | 'svg' | 'image' | 'badge'
 if (!chatCols.has('badge')) db.exec('ALTER TABLE chats ADD COLUMN badge TEXT');           // JSON: { kind, text, shape, color, style }
-if (!chatCols.has('provider')) db.exec("ALTER TABLE chats ADD COLUMN provider TEXT NOT NULL DEFAULT 'claude'");  // 'claude' | 'codex'
+if (!chatCols.has('provider')) db.exec("ALTER TABLE chats ADD COLUMN provider TEXT NOT NULL DEFAULT 'codex'");  // oggi sempre 'codex' (ChatGPT)
 
 const now = () => Date.now();
 export const newId = () => randomUUID();
 
 // ---------- Impostazioni ----------
 export const DEFAULT_SETTINGS = {
-  defaultProvider: 'claude',            // modello per le nuove chat: 'claude' | 'codex' (ChatGPT)
-  utilityProvider: 'claude',            // modello per riassunti, icone e strumenti della mappa
   codexModel: '',                       // vuoto = modello predefinito di Codex
-  iconSource: 'claude',                 // 'claude' (SVG disegnato da Claude) | 'badge' | 'image'
+  iconSource: 'svg',                    // 'svg' (icona vettoriale disegnata dal modello) | 'badge' | 'image'
   imageProvider: 'pollinations',        // per iconSource 'image': 'pollinations' | 'cloudflare' | 'none'
   pollinationsKey: '',
   cloudflareAccountId: '',
   cloudflareToken: '',
   iconStyle: 'flat vector app icon, simple bold shapes, soft gradient background, centered symbol, no text',
-  chatModel: '',                        // vuoto = modello predefinito di Claude Code
-  utilityModel: '',                     // per riassunti e strumenti della mappa
   autoIcon: 'true',                     // genera l'icona dopo il primo scambio
   resummarizeEvery: '6',                // aggiorna il riassunto ogni N messaggi
   webTools: 'true',                     // WebSearch/WebFetch nelle chat
@@ -162,7 +158,7 @@ export function createChat({ title, parentChatId, forkFromSession, seedContext, 
   db.prepare(`INSERT INTO chats(id, title, title_locked, parent_chat_id, fork_from_session, seed_context, provider, created_at, updated_at)
               VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)`)
     .run(id, title || tr('Nuova chat'), title ? 1 : 0, parentChatId || null, forkFromSession || null, seedContext || null,
-      provider === 'codex' ? 'codex' : 'claude', now(), now());
+      'codex', now(), now());
   return getChatPublic(id);
 }
 const UPDATABLE = new Set(['title', 'title_locked', 'summary', 'keywords', 'image_prompt', 'icon_path', 'icon_status', 'icon_error', 'icon_mode', 'badge', 'provider',

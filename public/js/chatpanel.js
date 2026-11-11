@@ -14,12 +14,6 @@ export class ChatPanel {
     this.el = $('chat-panel'); this.list = $('cp-messages'); this.input = $('cp-input');
     $('cp-close').onclick = () => this.close();
     $('cp-expand').onclick = () => this.toggleFull();
-    $('cp-provider').onclick = async () => {
-      const c = this.o.chats.get(this.chatId);
-      if (!c || c.msg_count > 0 || this.streaming) return;
-      await this.patch({ provider: c.provider === 'codex' ? 'claude' : 'codex' });
-      this.input.focus();
-    };
     $('cp-form').onsubmit = (e) => { e.preventDefault(); this.streaming ? this.stop() : this.send(); };
     this.input.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); if (!this.streaming) this.send(); }
@@ -41,7 +35,7 @@ export class ChatPanel {
     $('ie-draw-full').onclick = () => this.regenIcon(true, 'svg');
     this.buildBadgeEditor();
     $('cp-resummarize').onclick = async () => {
-      const done = this.o.toast(t('Claude sta riassumendo la chat…'), { spin: true });
+      const done = this.o.toast(t('Riassumo la chat…'), { spin: true });
       try { const c = await api.summarize(this.chatId); this.o.chats.set(c.id, c); this.o.onChatUpdated(c); done(); }
       catch (e) { done(); this.o.toast(e.message, { error: true }); }
     };
@@ -51,7 +45,7 @@ export class ChatPanel {
     const id = this.chatId;
     const chat = this.o.chats.get(id);
     if (!chat?.msg_count) return this.o.toast(t('Scrivi almeno un messaggio prima di creare l\'icona'));
-    const what = mode === 'svg' ? t('Claude disegna l\'icona…') : t('Genero l\'immagine…');
+    const what = mode === 'svg' ? t('Disegno l\'icona…') : t('Genero l\'immagine…');
     const done = this.o.toast(refreshPrompt ? t('Riassumo la chat. ') + what : what, { spin: true });
     try { const c = await api.icon(id, refreshPrompt, mode); this.o.chats.set(c.id, c); this.o.onChatUpdated(c); done(); }
     catch (e) { done(); this.o.toast(t('Icona non creata: {msg}', { msg: e.message }), { error: true, ms: 7000 }); }
@@ -140,7 +134,7 @@ export class ChatPanel {
     await this.reload(chatId);
     setTimeout(() => this.input.focus(), 30);
   }
-  /** Ricarica i messaggi dal server; se Claude sta ancora rispondendo mostra la parte già scritta. */
+  /** Ricarica i messaggi dal server; se il modello sta ancora rispondendo mostra la parte già scritta. */
   async reload(chatId = this.chatId) {
     const data = await api.chat(chatId);
     if (this.chatId !== chatId) return;
@@ -174,14 +168,7 @@ export class ChatPanel {
     $('cp-icon').innerHTML = iconHTML(c) + (gen ? '<div class="spinner" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.5)"><div class="spin"></div></div>' : '');
     if (document.activeElement !== $('cp-title')) $('cp-title').value = c.title;
     $('cp-neighbors').checked = !!c.use_neighbor_context;
-    const pv = $('cp-provider'), codex = c.provider === 'codex';
-    pv.textContent = codex ? 'ChatGPT' : 'Claude';
-    pv.className = 'provider ' + (codex ? 'codex' : 'claude');
-    pv.disabled = c.msg_count > 0;
-    const who = codex ? 'ChatGPT (Codex)' : 'Claude';
-    pv.title = c.msg_count > 0 ? t('Risponde {who}. Il modello si sceglie prima del primo messaggio.', { who })
-      : t('Risponde {who}. Clic per passare a {other}.', { who, other: codex ? 'Claude' : 'ChatGPT' });
-    this.input.placeholder = t(codex ? 'Scrivi a ChatGPT. Invio per inviare, Shift+Invio per andare a capo.' : 'Scrivi a Claude. Invio per inviare, Shift+Invio per andare a capo.');
+    this.input.placeholder = t('Scrivi a ChatGPT. Invio per inviare, Shift+Invio per andare a capo.');
     $('cp-summary').textContent = c.summary || t('Non ancora disponibile: arriva dopo il primo scambio.');
     $('cp-keywords').textContent = c.keywords || '—';
     $('cp-prompt').textContent = c.image_prompt || '—';
@@ -192,7 +179,7 @@ export class ChatPanel {
   renderMessages(msgs) {
     this.list.innerHTML = '';
     if (!msgs.length) {
-      this.list.innerHTML = `<div class="empty-chat"><b>${t('Da dove partiamo?')}</b>${t('Scrivi la prima idea. Dopo la risposta Claude dà un titolo alla chat e ne disegna l\'icona.')}</div>`;
+      this.list.innerHTML = `<div class="empty-chat"><b>${t('Da dove partiamo?')}</b>${t('Scrivi la prima idea. Dopo la risposta la chat riceve un titolo e la sua icona.')}</div>`;
       return;
     }
     let inheritedShown = false;

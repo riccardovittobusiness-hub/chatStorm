@@ -32,9 +32,9 @@ button:hover { border-color: var(--navy); }
 button:active { transform: scale(.97); }
 button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 2px solid var(--blu); outline-offset: 2px; }
 /* bottone principale: pillola blu col pallino, come sul sito */
-button.primary, #cp-send, #toolbar button.claude { background: var(--blu); color: #fff; border: none; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; padding-left: 14px; }
+button.primary, #cp-send, #toolbar button.ai { background: var(--blu); color: #fff; border: none; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; padding-left: 14px; }
 button.primary::before, #cp-send::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex: none; }
-button.primary:hover, #cp-send:hover, #toolbar button.claude:hover { background: var(--blu-testo); }
+button.primary:hover, #cp-send:hover, #toolbar button.ai:hover { background: var(--blu-testo); }
 button.danger-solid { background: var(--danger); color: #fff; border: none; font-weight: 600; }
 button.danger-solid:hover { background: #C3352C; }
 button.ghost { background: transparent; border-color: transparent; }
@@ -127,8 +127,8 @@ body.has-banner #app { top: 30px; }
 #toolbar button.active .ico { color: var(--giallo); }
 #toolbar button svg { width: 17px; height: 17px; }
 #toolbar .ico { font-size: 14px; width: 16px; text-align: center; color: var(--blu); }
-#toolbar button.claude { padding: 6px 13px; }
-#toolbar button.claude .ico { color: #fff; }
+#toolbar button.ai { padding: 6px 13px; }
+#toolbar button.ai .ico { color: #fff; }
 #toolbar .sep { width: 1px; height: 22px; background: var(--line); margin: 0 4px; }
 body.chat-open #toolbar .lbl { display: none; }
 .dropdown { position: relative; }
@@ -400,7 +400,7 @@ body.in-app .brand { -webkit-app-region: drag; }
 body.in-app .brand button, body.in-app #toolbar, body.in-app #face-nav { -webkit-app-region: no-drag; }
 body.in-app.sidebar-hidden #btn-expand { top: 60px; }
 
-/* ---------- Claude sta rispondendo ---------- */
+/* ---------- Il modello sta rispondendo ---------- */
 .item.chat.busy::before { content: ''; position: absolute; left: -6px; top: -6px; width: calc(100% + 12px); aspect-ratio: 1; border-radius: 27%;
   border: 3px solid var(--giallo); animation: busy-pulse 1.3s ease-in-out infinite; pointer-events: none; }
 @keyframes busy-pulse { 0%, 100% { opacity: .25; transform: scale(.97); } 50% { opacity: 1; transform: scale(1.03); } }
@@ -410,16 +410,7 @@ body.in-app.sidebar-hidden #btn-expand { top: 60px; }
 .typing span:nth-child(2) { animation-delay: .15s; } .typing span:nth-child(3) { animation-delay: .3s; }
 @keyframes typing { 0%, 80%, 100% { opacity: .25; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-3px); } }
 
-/* ---------- Modelli: Claude e ChatGPT (Codex) ---------- */
-.dropdown.split { display: flex; }
-.dropdown.split > #add-chat { border-top-right-radius: 0; border-bottom-right-radius: 0; padding-right: 6px; }
-.dropdown.split > .caret { padding: 6px 6px !important; font-size: 10px !important; color: var(--muted) !important; border-top-left-radius: 0; border-bottom-left-radius: 0; }
-.item.chat .prov { position: absolute; left: -6px; bottom: 30px; z-index: 1; background: #10A37F; color: #fff; font: 700 9.5px/1 var(--ui); letter-spacing: .3px;
-  padding: 3px 6px; border-radius: 999px; border: 2px solid #fff; }
-button.provider { font-size: 12px; padding: 3px 11px; white-space: nowrap; }
-button.provider.claude { background: var(--ghiaccio); color: var(--blu-testo); border-color: transparent; }
-button.provider.codex { background: rgba(16,163,127,.12); color: #0B7A5F; border-color: rgba(16,163,127,.35); }
-button.provider:disabled { opacity: 1; cursor: default; }
+/* ---------- Impostazioni del modello ---------- */
 .ie-row > .w { width: auto; min-width: 150px; }
 fieldset .status { margin: 2px 0 0; font-size: 12.5px; color: var(--muted); }
 fieldset .status.ok { color: #0B7A5F; } fieldset .status.warn { color: #A15C00; }

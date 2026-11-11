@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="/css/app.css">
 </head>
 <body>
-  <div id="mock-banner" hidden>Modalità simulata: le risposte di Claude sono finte. Avvia con <code>avvia.command</code> o <code>npm start</code> per usare Claude davvero.</div>
+  <div id="mock-banner" hidden>Modalità simulata: le risposte sono finte. Avvia con <code>avvia.command</code> o <code>npm start</code> per usare ChatGPT davvero.</div>
 
   <div id="app">
     <!-- Barra laterale -->
@@ -60,14 +60,7 @@
         </div>
         <div class="sep"></div>
         <div class="group">
-          <div class="dropdown split">
-            <button id="add-chat" title="Nuova chat con il modello predefinito (C, o doppio clic sulla lavagna)"><span class="ico">💬</span><span class="lbl">Chat</span></button>
-            <button class="caret" title="Scegli il modello per la nuova chat">▾</button>
-            <div class="menu">
-              <button data-new-chat="claude">Nuova chat con Claude</button>
-              <button data-new-chat="codex">Nuova chat con ChatGPT (Codex)</button>
-            </div>
-          </div>
+          <button id="add-chat" title="Nuova chat (C, o doppio clic sulla lavagna)"><span class="ico">💬</span><span class="lbl">Chat</span></button>
           <button id="add-note" title="Nota (N)"><span class="ico">▤</span><span class="lbl">Nota</span></button>
           <button id="add-text" title="Testo (T)"><span class="ico">T</span><span class="lbl">Testo</span></button>
           <button id="add-frame" title="Riquadro (F)"><span class="ico">▢</span><span class="lbl">Riquadro</span></button>
@@ -84,7 +77,7 @@
           </div>
         </div>
         <div class="dropdown">
-          <button class="claude" title="Strumenti di Claude per la visione d'insieme"><span class="ico">✦</span><span class="lbl">Claude</span></button>
+          <button class="ai" title="Strumenti AI per la visione d'insieme"><span class="ico">✦</span><span class="lbl">AI</span></button>
           <div class="menu">
             <button data-ai="links">Suggerisci collegamenti</button>
             <button data-ai="clusters">Raggruppa per temi</button>
@@ -172,14 +165,13 @@
       <div class="cp-head">
         <div class="cp-icon" id="cp-icon" title="Rigenera l'icona"></div>
         <input id="cp-title" spellcheck="false" aria-label="Titolo della chat">
-        <button id="cp-provider" class="provider" title="Modello che risponde in questa chat"></button>
         <button class="ghost" id="cp-expand" title="Espandi a tutto schermo">⤢</button>
         <button class="ghost" id="cp-close" title="Chiudi (Esc)">✕</button>
       </div>
       <div class="cp-tools">
         <button id="cp-info-toggle">Icona e riassunto</button>
         <button id="cp-fork" title="Nuova chat che continua da questa">⑂ Dirama</button>
-        <label class="check" title="Invia a Claude i riassunti delle chat collegate con frecce"><input type="checkbox" id="cp-neighbors"> Contesto dai collegati</label>
+        <label class="check" title="Invia al modello i riassunti delle chat collegate con frecce"><input type="checkbox" id="cp-neighbors"> Contesto dai collegati</label>
         <button id="cp-delete" class="danger ghost" title="Elimina la chat" aria-label="Elimina la chat">🗑</button>
       </div>
       <div id="cp-info" hidden>
@@ -188,7 +180,7 @@
             <div class="ie-preview" id="ie-preview"></div>
             <div>
               <div class="ie-modes" id="ie-modes" role="tablist" aria-label="Tipo di icona">
-                <button data-mode="svg">✦ Disegnata da Claude</button>
+                <button data-mode="svg">✦ Disegnata dall'AI</button>
                 <button data-mode="badge">Aa Badge</button>
                 <button data-mode="image">Immagine AI</button>
               </div>
@@ -196,8 +188,8 @@
             </div>
           </div>
           <div class="ie-pane" data-pane="svg">
-            <p>Claude legge il riassunto della chat e disegna un'icona vettoriale nei toni del blu.</p>
-            <div class="row"><button id="ie-draw" class="primary">Disegna con Claude</button><button id="ie-draw-full">Riassumi e ridisegna</button></div>
+            <p>Il modello legge il riassunto della chat e disegna un'icona vettoriale nello stile dell'app.</p>
+            <div class="row"><button id="ie-draw" class="primary">Disegna l'icona</button><button id="ie-draw-full">Riassumi e ridisegna</button></div>
           </div>
           <div class="ie-pane" data-pane="badge">
             <div class="ie-row"><span>Contenuto</span><div class="seg" id="ie-kind"></div><input id="ie-text" maxlength="4" aria-label="Testo del badge"></div>
@@ -217,7 +209,7 @@
       </div>
       <div id="cp-messages"></div>
       <form id="cp-form">
-        <textarea id="cp-input" rows="3" placeholder="Scrivi a Claude. Invio per inviare, Shift+Invio per andare a capo."></textarea>
+        <textarea id="cp-input" rows="3" placeholder="Scrivi a ChatGPT. Invio per inviare, Shift+Invio per andare a capo."></textarea>
         <button id="cp-send" type="submit">Invia</button>
       </form>
     </aside>
@@ -241,7 +233,7 @@
       <h2>Impostazioni</h2>
       <fieldset>
         <legend>Icone delle chat</legend>
-        <label class="radio"><input type="radio" name="iconSource" value="claude"> Disegnate da Claude <small>icone vettoriali, nessun servizio esterno</small></label>
+        <label class="radio"><input type="radio" name="iconSource" value="svg"> Disegnate dall'AI <small>icone vettoriali, nessun servizio in più</small></label>
         <label class="radio"><input type="radio" name="iconSource" value="badge"> Badge standard <small>lettere, numeri o simboli che modifichi tu</small></label>
         <label class="radio"><input type="radio" name="iconSource" value="image"> Immagine AI <small>Pollinations o Cloudflare</small></label>
         <label class="check"><input type="checkbox" name="autoIcon"> Crea l'icona dopo il primo scambio</label>
@@ -264,20 +256,8 @@
         </div>
       </fieldset>
       <fieldset>
-        <legend>Modelli</legend>
-        <div class="ie-row"><span class="w">Nuove chat</span>
-          <label class="radio"><input type="radio" name="defaultProvider" value="claude"> Claude</label>
-          <label class="radio"><input type="radio" name="defaultProvider" value="codex"> ChatGPT (Codex)</label></div>
-        <div class="ie-row"><span class="w">Riassunti, icone e strumenti della mappa</span>
-          <label class="radio"><input type="radio" name="utilityProvider" value="claude"> Claude</label>
-          <label class="radio"><input type="radio" name="utilityProvider" value="codex"> ChatGPT (Codex)</label></div>
-        <label>Modello Claude per le chat
-          <select name="chatModel" data-model="claude"></select>
-          <input class="custom-model" hidden placeholder="Scrivi il nome del modello"></label>
-        <label>Modello Claude per riassunti e strumenti
-          <select name="utilityModel" data-model="claude"></select>
-          <input class="custom-model" hidden placeholder="Scrivi il nome del modello"></label>
-        <label>Modello ChatGPT (Codex)
+        <legend>Modello</legend>
+        <label>Modello ChatGPT (Codex) per le chat, i riassunti e gli strumenti della mappa
           <select name="codexModel" data-model="codex"></select>
           <input class="custom-model" hidden placeholder="Scrivi il nome del modello"></label>
         <p class="status" id="codex-status"></p>
@@ -287,7 +267,7 @@
         <label>Lingua dell'app e delle risposte
           <select name="uiLang"><option value="it">Italiano</option><option value="en">English</option></select></label>
         <label>Aggiorna il riassunto ogni N messaggi <input name="resummarizeEvery" type="number" min="2" max="50"></label>
-        <label class="check"><input type="checkbox" name="webTools"> Permetti di cercare sul web nelle chat (Claude e Codex)</label>
+        <label class="check"><input type="checkbox" name="webTools"> Permetti di cercare sul web nelle chat</label>
       </fieldset>
       <div class="dialog-actions">
         <button value="cancel" formnovalidate>Annulla</button>

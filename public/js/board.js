@@ -210,8 +210,7 @@ export class Board {
     if (it.type === 'chat') {
       const spinner = chat?.icon_status === 'generating' ? '<div class="spinner"><div class="spin"></div></div>' : '';
       const badge = chat?.msg_count ? `<div class="badge">${chat.msg_count}</div>` : '';
-      const prov = chat?.provider === 'codex' ? '<div class="prov" title="Risponde ChatGPT (Codex)">GPT</div>' : '';
-      return `<div class="icon">${chat ? iconHTML(chat, it.chatId) : '<div class="initials" style="background:#8486A6">?</div>'}${spinner}</div>${badge}${prov}
+      return `<div class="icon">${chat ? iconHTML(chat, it.chatId) : '<div class="initials" style="background:#8486A6">?</div>'}${spinner}</div>${badge}
         <div class="label">${escHTML(chat?.title || t('Chat eliminata'))}</div>${handles}${resize}`;
     }
     if (it.type === 'note' || it.type === 'text') {
@@ -309,7 +308,7 @@ export class Board {
         if (chats.length > 1) {
           h += B('size:eq', '=', 'Uguaglia le dimensioni (=)') + sep;
           h += B('icons:number', '#', 'Icone numerate in ordine di selezione') + B('icons:letters', 'Aa', 'Icone con le iniziali del titolo')
-            + B('icons:redraw', '✦', 'Fai ridisegnare le icone a Claude');
+            + B('icons:redraw', '✦', 'Fai ridisegnare le icone all\'AI');
         }
         h += sep;
       }

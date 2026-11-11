@@ -1,4 +1,4 @@
-// Avvio dell'app: lavagna, mappe ruotabili, barra laterale, pannello chat, impostazioni e strumenti di Claude.
+// Avvio dell'app: lavagna, mappe ruotabili, barra laterale, pannello chat, impostazioni e strumenti AI.
 import { api } from './api.js';
 import { Board, iconHTML } from './board.js';
 import { ChatPanel } from './chatpanel.js';
@@ -9,7 +9,7 @@ import * as G from './geom.js';
 
 const $ = (id) => document.getElementById(id);
 const chats = new Map();
-const busyChats = new Set();          // chat in cui Claude sta rispondendo
+const busyChats = new Set();          // chat in cui il modello sta rispondendo
 let boardId = null;
 let boardsCache = [];
 let turning = false;
@@ -76,8 +76,8 @@ const board = new Board({
   },
   onSuggestions: (n) => {
     $('suggest-bar').hidden = !n;
-    $('suggest-text').textContent = tn(n, '1 collegamento suggerito da Claude. Passa sopra l\'etichetta per leggere il motivo.',
-      '{n} collegamenti suggeriti da Claude. Passa sopra un\'etichetta per leggere il motivo.');
+    $('suggest-text').textContent = tn(n, '1 collegamento suggerito dall\'AI. Passa sopra l\'etichetta per leggere il motivo.',
+      '{n} collegamenti suggeriti dall\'AI. Passa sopra un\'etichetta per leggere il motivo.');
   },
   onDeleteChats: (ids) => deleteChats(ids),
   actions: {
@@ -131,8 +131,8 @@ function chatUpdated(c) {
 }
 
 // ---------- Chat ----------
-async function newChat(at, provider) {
-  const chat = await api.createChat(provider ? { provider } : {});
+async function newChat(at) {
+  const chat = await api.createChat({});
   chats.set(chat.id, chat);
   const it = board.addChatItem(chat.id, at || board.visibleCenter());
   await panel.open(chat.id);
@@ -171,13 +171,13 @@ async function deleteChats(ids) {
   return true;
 }
 
-/** Azioni sulle icone di più chat: numeri in ordine di selezione, iniziali, o nuove icone disegnate da Claude. */
+/** Azioni sulle icone di più chat: numeri in ordine di selezione, iniziali, o nuove icone disegnate dall'AI. */
 async function bulkIcons(kind, ids) {
   if (kind === 'redraw') {
     const todo = ids.filter(id => chats.get(id)?.msg_count);
     if (!todo.length) return toast(t('Le chat selezionate sono vuote: scrivi almeno un messaggio'));
     for (let i = 0; i < todo.length; i++) {
-      const done = toast(t('Claude disegna le icone ({i} di {n})…', { i: i + 1, n: todo.length }), { spin: true });
+      const done = toast(t('Disegno le icone ({i} di {n})…', { i: i + 1, n: todo.length }), { spin: true });
       try { chatUpdated(await api.icon(todo[i], false, 'svg')); }
       catch (e) { toast(e.message, { error: true }); } finally { done(); }
     }
@@ -211,7 +211,7 @@ async function synthesis() {
   const items = sel.length ? sel : board.state.items.filter(i => i.type !== 'frame');
   if (!items.length) return toast(t('La mappa è vuota'));
   await flushSave();
-  const r = await withSpinner(sel.length ? t('Claude sintetizza la selezione…') : t('Claude sintetizza la mappa…'), () => api.synthesis(boardId, sel.map(i => i.id)));
+  const r = await withSpinner(sel.length ? t('Sintetizzo la selezione…') : t('Sintetizzo la mappa…'), () => api.synthesis(boardId, sel.map(i => i.id)));
   if (r?.markdown) board.addNoteText(r.markdown, G.unionBounds(items), 'blue');
 }
 
@@ -220,7 +220,7 @@ async function aiAction(kind) {
   if (kind === 'synthesis') return synthesis();
   await flushSave();
   if (kind === 'links') {
-    const r = await withSpinner(t('Claude cerca collegamenti tra le idee…'), () => api.suggestLinks(boardId));
+    const r = await withSpinner(t('Cerco collegamenti tra le idee…'), () => api.suggestLinks(boardId));
     if (!r) return;
     if (!r.links.length) return toast(t('Nessun nuovo collegamento suggerito'));
     board.addSuggestions(r.links);
@@ -228,7 +228,7 @@ async function aiAction(kind) {
   }
   if (kind === 'clusters') {
     const sel = board.selectedItems().filter(i => i.type !== 'frame').map(i => i.id);
-    const r = await withSpinner(t('Claude raggruppa le idee per temi…'), () => api.clusters(boardId, sel.length > 1 ? sel : []));
+    const r = await withSpinner(t('Raggruppo le idee per temi…'), () => api.clusters(boardId, sel.length > 1 ? sel : []));
     if (r?.groups?.length) board.applyClusters(r.groups);
   }
 }
@@ -417,7 +417,7 @@ function renderChatList() {
     const li = document.createElement('li');
     li.className = panel.chatId === c.id ? 'open' : '';
     li.title = c.summary || '';
-    li.innerHTML = `<div class="thumb">${iconHTML(c)}</div><div class="t"><div></div><small>${busyChats.has(c.id) ? `<span class="busy-text">${c.provider === 'codex' ? t('ChatGPT sta rispondendo…') : t('Claude sta rispondendo…')}</span>` : (c.provider === 'codex' ? 'ChatGPT, ' : '') + tn(c.msg_count, '1 messaggio', '{n} messaggi')}</small></div>
+    li.innerHTML = `<div class="thumb">${iconHTML(c)}</div><div class="t"><div></div><small>${busyChats.has(c.id) ? `<span class="busy-text">${t('ChatGPT sta rispondendo…')}</span>` : tn(c.msg_count, '1 messaggio', '{n} messaggi')}</small></div>
       <button class="del" title="${t('Elimina la chat')}">🗑</button>`;
     li.querySelector('.t div').textContent = c.title;
     li.onclick = (e) => {
@@ -440,7 +440,7 @@ const STYLE_PRESETS = {
 let modelsCache = null;
 /** Riempie i selettori dei modelli; un valore non in elenco va in "Altro…". */
 async function fillModelSelects(s) {
-  modelsCache ||= await api.models().catch(() => ({ claude: [], codex: [] }));
+  modelsCache ||= await api.models().catch(() => ({ codex: [] }));
   for (const sel of document.querySelectorAll('select[data-model]')) {
     const list = modelsCache[sel.dataset.model] || [];
     const custom = sel.parentNode.querySelector('.custom-model');
@@ -473,7 +473,7 @@ async function openSettings() {
     const el = $('codex-status'), c = p.codex;
     el.className = 'status ' + (c.installed && c.loggedIn ? 'ok' : 'warn');
     el.textContent = t(c.installing ? 'ChatGPT (Codex): installazione del supporto in corso…'
-      : !c.loggedIn ? 'ChatGPT (Codex): non risulti collegato. Apri l\'app Codex e accedi con il tuo account ChatGPT.'
+      : !c.loggedIn ? 'ChatGPT (Codex): non risulti collegato. Apri avvia.command (o esegui npx codex login nella cartella del progetto) e accedi con il tuo account ChatGPT.'
       : c.installed ? 'ChatGPT (Codex): pronto, collegato al tuo account ChatGPT.'
       : 'ChatGPT (Codex): collegato. Il supporto verrà installato al primo utilizzo (serve qualche secondo).');
   }).catch(() => {});
@@ -514,7 +514,6 @@ function wire() {
 
   document.querySelectorAll('[data-tool]').forEach(b => { b.onclick = () => board.setTool(b.dataset.tool); });
   $('add-chat').onclick = () => newChat();
-  document.querySelectorAll('[data-new-chat]').forEach(b => { b.onclick = () => { closeMenus(); newChat(null, b.dataset.newChat); }; });
   $('add-note').onclick = () => board.addItem('note', board.visibleCenter());
   $('add-text').onclick = () => board.addItem('text', board.visibleCenter());
   $('add-frame').onclick = () => {

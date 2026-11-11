@@ -19,8 +19,8 @@ if ! command -v node >/dev/null 2>&1; then
   pause "Premi un tasto per chiudere"; exit 1
 fi
 
-if [ ! -d node_modules/@anthropic-ai/claude-agent-sdk ] || [ ! -f "$HOME/.cc-canvas-login-done" ]; then
-  echo "\nPrima serve la configurazione iniziale (Claude Code, login, dipendenze): la faccio con avvia.command."
+if [ ! -d node_modules/@openai/codex-sdk ] || [ ! -f "${CODEX_HOME:-$HOME/.codex}/auth.json" ]; then
+  echo "\nPrima serve la configurazione iniziale (dipendenze e login a ChatGPT): la faccio con avvia.command."
   echo "Quando l'app si apre nel browser, chiudi quella finestra del Terminale e riapri questo file."
   pause "Premi un tasto per continuare…"
   exec "$PROJ/avvia.command"

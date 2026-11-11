@@ -71,7 +71,7 @@ async function ensureServer() {
   const node = findNode();
   if (!node) throw new Error('Node.js non trovato. Installalo da nodejs.org (versione 22 o più recente).');
   const env = { ...process.env };
-  delete env.ANTHROPIC_API_KEY;                       // usa l'abbonamento, non una API key a consumo
+  delete env.OPENAI_API_KEY; delete env.CODEX_API_KEY;   // usa l'abbonamento ChatGPT, non una API key a consumo
   delete env.ELECTRON_RUN_AS_NODE;
   env.PATH = [path.dirname(node), path.join(HOME, '.local/bin'), '/opt/homebrew/bin', '/usr/local/bin', env.PATH].join(':');
   fs.mkdirSync(path.join(PROJ, 'data'), { recursive: true });

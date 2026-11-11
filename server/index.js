@@ -4,7 +4,7 @@ import { readFile, stat } from 'node:fs/promises';
 import { join, extname, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as db from './db.js';
-import { streamChat, MOCK, listClaudeModels } from './claude.js';
+import { streamChat, MOCK } from './model.js';
 import { codexStatus, CODEX_MODELS } from './codex.js';
 import * as ai from './ai.js';
 import { generateImage } from './images.js';
@@ -49,12 +49,12 @@ async function afterReply(chatId) {
     const s = db.getSettings();
     const chat = db.getChat(chatId);
     const every = Math.max(2, Number(s.resummarizeEvery) || 6);
-    const source = s.iconSource || 'claude';
+    const source = s.iconSource || 'svg';
     const wantsAuto = s.autoIcon === 'true' && chat.icon_status === 'none' && !chat.icon_mode;
     if (wantsAuto && source === 'badge') {
       chatUpdated(await ai.summarizeChat(chatId, s));
       chatUpdated(db.updateChat(chatId, { icon_mode: 'badge', icon_status: 'ready' }));
-    } else if (wantsAuto && (source === 'claude' || s.imageProvider !== 'none')) {
+    } else if (wantsAuto && (source === 'svg' || s.imageProvider !== 'none')) {
       chatUpdated(await ai.generateIcon(chatId, s, { onUpdate: chatUpdated }));
     } else if (!chat.summary || chat.msg_count - chat.summarized_at_count >= every) {
       chatUpdated(await ai.summarizeChat(chatId, s));
@@ -105,8 +105,8 @@ function maskSettings(s) {
   return out;
 }
 route('GET', '/api/settings', () => maskSettings(db.getSettings()));
-route('GET', '/api/providers', () => ({ claude: true, codex: codexStatus() }));
-route('GET', '/api/models', async () => ({ claude: await listClaudeModels(), codex: CODEX_MODELS }));
+route('GET', '/api/providers', () => ({ codex: codexStatus() }));
+route('GET', '/api/models', () => ({ codex: CODEX_MODELS }));
 route('PUT', '/api/settings', async ({ body }) => {
   for (const k of SECRET) if (typeof body[k] === 'string' && body[k].startsWith('••••')) delete body[k];
   return maskSettings(db.saveSettings(body));
@@ -141,13 +141,10 @@ route('POST', '/api/chats', async ({ body }) => {
   if (body.forkOf) {
     const parent = db.getChat(body.forkOf);
     if (!parent) throw new Error('Chat di partenza non trovata');
-    let chat;
-    if (parent.provider === 'codex') {
-      // Codex non ha il "fork" della sessione: la nuova chat riceve la conversazione come contesto
-      const tr = db.getMessages(parent.id).map(m => `${m.role === 'user' ? 'UTENTE' : 'ASSISTENTE'}: ${m.content}`).join('\n\n');
-      chat = db.createChat({ parentChatId: parent.id, provider: 'codex',
-        seedContext: `Questa conversazione continua da un'altra chat. Ecco quanto detto finora:\n${tr.length > 12000 ? '[...]\n' + tr.slice(-12000) : tr}` });
-    } else chat = db.createChat({ parentChatId: parent.id, forkFromSession: parent.sdk_session_id });
+    // Codex non ha il "fork" della sessione: la nuova chat riceve la conversazione come contesto
+    const tr = db.getMessages(parent.id).map(m => `${m.role === 'user' ? 'UTENTE' : 'ASSISTENTE'}: ${m.content}`).join('\n\n');
+    const chat = db.createChat({ parentChatId: parent.id,
+      seedContext: `Questa conversazione continua da un'altra chat. Ecco quanto detto finora:\n${tr.length > 12000 ? '[...]\n' + tr.slice(-12000) : tr}` });
     db.copyMessages(parent.id, chat.id);
     db.updateChat(chat.id, { title: `↳ ${parent.title}`.slice(0, 80) });
     return db.getChatPublic(chat.id);
@@ -164,9 +161,9 @@ route('POST', '/api/chats', async ({ body }) => {
       } else if (it.text) parts.push(`- ${it.type === 'note' ? 'Nota' : 'Testo'}: ${it.text.slice(0, 500)}`);
     }
     const seed = `Questa conversazione nasce per far convergere queste idee dalla mappa:\n${parts.join('\n')}\nAiuta l'utente a integrarle, confrontarle e sintetizzarle.`;
-    return db.createChat({ title: body.title || db.tr('Sintesi di idee'), seedContext: seed, provider: body.provider || db.getSettings().defaultProvider });
+    return db.createChat({ title: body.title || db.tr('Sintesi di idee'), seedContext: seed });
   }
-  return db.createChat({ title: body.title, provider: body.provider || db.getSettings().defaultProvider });
+  return db.createChat({ title: body.title });
 });
 route('PATCH', '/api/chats/:id', ({ id, body }) => {
   const patch = {};
@@ -174,10 +171,6 @@ route('PATCH', '/api/chats/:id', ({ id, body }) => {
   if (body.use_neighbor_context !== undefined) patch.use_neighbor_context = body.use_neighbor_context ? 1 : 0;
   if (['svg', 'image', 'badge', null].includes(body.icon_mode)) patch.icon_mode = body.icon_mode;
   if (body.badge !== undefined) patch.badge = body.badge ? JSON.stringify(body.badge).slice(0, 400) : null;
-  if (['claude', 'codex'].includes(body.provider)) {
-    const cur = db.getChat(id);
-    if (cur && cur.msg_count === 0 && !running.has(id)) patch.provider = body.provider;   // si sceglie prima del primo messaggio
-  }
   const chat = db.updateChat(id, patch);
   chatUpdated(chat);
   return chat;
@@ -214,7 +207,7 @@ async function handleMessage(req, res, chatId) {
   if (!chat) return send(res, 404, { error: 'Chat non trovata' });
   const text = String(body.text || '').trim();
   if (!text) return send(res, 400, { error: 'Messaggio vuoto' });
-  if (running.has(chatId)) return send(res, 409, { error: 'Claude sta già rispondendo in questa chat' });
+  if (running.has(chatId)) return send(res, 409, { error: 'Il modello sta già rispondendo in questa chat' });
 
   res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' });
   let clientGone = false;
@@ -229,7 +222,7 @@ async function handleMessage(req, res, chatId) {
   const extra = [chat.seed_context, chat.use_neighbor_context ? ai.neighborContext(chatId, body.boardId) : ''].filter(Boolean).join('\n\n');
   try {
     const out = await streamChat({
-      provider: chat.provider, prompt: text, sessionId: chat.sdk_session_id, forkFromSession: chat.sdk_session_id ? null : chat.fork_from_session,
+      prompt: text, sessionId: chat.sdk_session_id,
       extraSystem: extra, settings: s, signal: job.ctrl.signal,
       onDelta: (d) => { job.acc += d; emit('delta', d); broadcast('chat-delta', { chatId, d, len: job.acc.length }); },
     });

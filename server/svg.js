@@ -1,9 +1,9 @@
-// Pulizia degli SVG scritti da Claude: solo grafica, niente script né risorse esterne.
+// Pulizia degli SVG scritti dal modello: solo grafica, niente script né risorse esterne.
 const FORBIDDEN_TAGS = ['script', 'foreignObject', 'iframe', 'image', 'use', 'a', 'style', 'animate', 'animateTransform', 'animateMotion', 'set', 'audio', 'video'];
 
 export function sanitizeSvg(raw) {
   const m = String(raw).match(/<svg[\s\S]*?<\/svg>/i);
-  if (!m) throw new Error('Claude non ha restituito un SVG');
+  if (!m) throw new Error('Il modello non ha restituito un SVG');
   let s = m[0];
   for (const t of FORBIDDEN_TAGS) {
     s = s.replace(new RegExp(`<${t}\\b[\\s\\S]*?<\\/${t}>`, 'gi'), '');

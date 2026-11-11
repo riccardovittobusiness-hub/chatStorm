@@ -14,33 +14,21 @@ if [ "$NODE_MAJOR" -lt 22 ] || { [ "$NODE_MAJOR" -eq 22 ] && [ "$NODE_MINOR" -lt
   read -k1 "?Premi un tasto per chiudere"; exit 1
 fi
 
-# Usa l'abbonamento, non una API key a consumo
-unset ANTHROPIC_API_KEY
-
-export PATH="$HOME/.local/bin:$PATH"
-if ! command -v claude >/dev/null 2>&1; then
-  echo ""
-  echo "Claude Code non è installato: lo installo con l'installatore ufficiale…"
-  curl -fsSL https://claude.ai/install.sh | bash || { read -k1 "?Installazione di Claude Code non riuscita. Premi un tasto per chiudere"; exit 1; }
-  export PATH="$HOME/.local/bin:$PATH"
+if [ ! -d node_modules/@openai/codex-sdk ]; then
+  echo "Installo le dipendenze (solo la prima volta)…"
+  npm install || { read -k1 "?Installazione non riuscita. Premi un tasto per chiudere"; exit 1; }
 fi
 
-if ! claude auth status >/dev/null 2>&1 && [ ! -f "$HOME/.cc-canvas-login-done" ]; then
+# Accesso a ChatGPT tramite Codex: usa il tuo abbonamento ChatGPT (Plus o Pro), non una API key a consumo
+unset OPENAI_API_KEY CODEX_API_KEY
+if [ ! -f "${CODEX_HOME:-$HOME/.codex}/auth.json" ]; then
   echo ""
   echo "=== LOGIN (una volta sola) ==="
-  echo "Si apre Claude Code: segui le istruzioni nel browser e scegli l'accesso con il tuo"
-  echo "ACCOUNT CLAUDE (abbonamento), NON la Console/API."
-  echo "Quando vedi Claude Code pronto, scrivi /exit e premi Invio: l'app partirà da sola."
+  echo "Si apre il browser: accedi con il tuo account ChatGPT (scegli \"Sign in with ChatGPT\")."
   echo ""
   read -k1 "?Premi un tasto per iniziare il login…"
   echo ""
-  claude
-  touch "$HOME/.cc-canvas-login-done"
-fi
-
-if [ ! -d node_modules/@anthropic-ai/claude-agent-sdk ] || [ ! -d node_modules/@openai/codex-sdk ]; then
-  echo "Installo le dipendenze (solo la prima volta)…"
-  npm install || { read -k1 "?Installazione non riuscita. Premi un tasto per chiudere"; exit 1; }
+  npx --no-install codex login || { read -k1 "?Login non riuscito. Premi un tasto per chiudere"; exit 1; }
 fi
 
 ( sleep 2; open "http://localhost:4317" ) &
