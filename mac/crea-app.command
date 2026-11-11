@@ -1,6 +1,6 @@
 #!/bin/zsh
 # Crea l'app desktop chatStorm e la installa nella cartella Applicazioni del tuo utente.
-# Doppio clic su questo file dal Finder. Serve solo la prima volta (e dopo aggiornamenti dell'app desktop).
+# Doppio clic su questo file dal Finder. Serve solo la prima volta: dopo, l'app si aggiorna da sola.
 cd "$(dirname "$0")/.." || exit 1
 PROJ="$(pwd)"
 pause() { read -k1 "?$1"; echo; }
@@ -26,33 +26,9 @@ if [ ! -d node_modules/@anthropic-ai/claude-agent-sdk ] || [ ! -f "$HOME/.cc-can
   exec "$PROJ/avvia.command"
 fi
 
-cd mac/electron || exit 1
-print -r -- "{\"project\": \"$PROJ\"}" > config.json
-
-echo "\nScarico Electron (solo la prima volta, circa 100 MB)…"
-npm install --no-audit --no-fund || { pause "Installazione non riuscita. Premi un tasto per chiudere"; exit 1; }
-
-ARCH=$(uname -m); [ "$ARCH" = "x86_64" ] && ARCH=x64
-echo "\nCostruisco l'app…"
-npx --no-install electron-packager . chatStorm --platform=darwin --arch="$ARCH" --icon=../AppIcon.icns \
-  --out=../dist --overwrite --app-bundle-id=com.riccardovitto.chatstorm --ignore='^/dist' \
-  || { pause "Costruzione non riuscita. Premi un tasto per chiudere"; exit 1; }
-
-BUILT="../dist/chatStorm-darwin-$ARCH/chatStorm.app"
-codesign --force --deep --sign - "$BUILT" 2>/dev/null   # firma locale, necessaria sui Mac Apple Silicon
-
-# chiudo un'eventuale versione aperta (anche col vecchio nome) e il vecchio server
-osascript -e 'tell application "chatStorm" to quit' >/dev/null 2>&1
-osascript -e 'tell application "ClaudioStorm" to quit' >/dev/null 2>&1
-/usr/bin/pkill -f "server/index.js" 2>/dev/null
-
-mkdir -p "$HOME/Applications"
-rm -rf "$HOME/Applications/chatStorm.app" "$HOME/Applications/ClaudioStorm.app"   # anche la versione col vecchio nome
-ditto "$BUILT" "$HOME/Applications/chatStorm.app"
-xattr -dr com.apple.quarantine "$HOME/Applications/chatStorm.app" 2>/dev/null
-rm -rf "$PROJ/mac/chatStorm.app" "$PROJ/mac/_vecchia-app" ../dist   # vecchia versione e file di costruzione
-
-echo "\nFatto. L'app è in Applicazioni (del tuo utente): la trovi anche in Launchpad e con Spotlight."
-echo "Trascinala nel Dock per averla sempre a portata di mano."
-open "$HOME/Applications/chatStorm.app"
+echo "\nCostruisco e installo l'app (la prima volta scarica Electron, circa 100 MB)…"
+ID=$(node --input-type=module -e "import('$PROJ/server/desktop-app.js').then(m => console.log(m.buildId()))")
+/bin/zsh "$PROJ/mac/aggiorna-app.sh" "$ID" || { pause "Non riuscito. Premi un tasto per chiudere"; exit 1; }
+echo "\nFatto. chatStorm è in Applicazioni (del tuo utente): la trovi anche in Launchpad e con Spotlight."
+echo "D'ora in poi l'app si aggiorna da sola: non serve più rieseguire questo file."
 exit 0

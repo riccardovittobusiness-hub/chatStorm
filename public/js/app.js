@@ -17,6 +17,9 @@ const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
 
 // ---------- Avvisi ----------
 let toastTimer;
+function appUpdating() {
+  toast(t("Aggiorno l'app desktop: tra un minuto si chiude e si riapre da sola, con il nuovo nome e la nuova icona."), { spin: true, ms: 120000 });
+}
 function toast(msg, { spin = false, error = false, ms = 3500 } = {}) {
   const t = $('toast');
   clearTimeout(toastTimer);
@@ -628,6 +631,7 @@ async function init() {
   await switchBoard(boardsCache.some(b => b.id === last) ? last : boardsCache[0].id, 0);
   for (const id of await api.busy().catch(() => [])) busyChats.add(id);
   board.render(); renderChatList();
+  if (status.appUpdate === 'building') appUpdating();
   api.events((ev) => {
     if (ev.type === 'chat-delta') panel.onDelta(ev.data);
     if (ev.type === 'chat-busy') {
@@ -636,6 +640,7 @@ async function init() {
       panel.onBusy(ev.data);
     }
     if (ev.type === 'chat') chatUpdated(ev.data);
+    if (ev.type === 'app-update') appUpdating();
     if (ev.type === 'chat-deleted') {
       chats.delete(ev.data.id);
       board.removeChatEverywhere(ev.data.id);

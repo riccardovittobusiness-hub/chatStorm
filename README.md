@@ -30,7 +30,8 @@ L'app gira sul tuo computer e usa il tuo abbonamento Claude tramite Claude Code,
 Scarica Electron, costruisce **chatStorm.app** con la sua icona e la installa nella cartella Applicazioni del tuo utente
 (la trovi in Launchpad e con Spotlight; trascinala nel Dock). L'app ha una finestra sua, avvia il server quando la apri
 e lo spegne quando la chiudi; i link esterni si aprono nel browser. Dopo un aggiornamento del codice basta riaprirla.
-Se nel frattempo è cambiata l'app desktop stessa (cartella `mac/electron`), riesegui `crea-app.command`.
+L'app **si aggiorna da sola**: se cambiano nome, icona o `mac/electron`, all'apertura si ricostruisce in background
+(`mac/aggiorna-app.sh`, log in `data/app-build.log`), si chiude e si riapre aggiornata. Niente Terminale.
 **Importante:** tieni la cartella del progetto nella tua cartella Inizio (per esempio `~/claude-canvas`), non in Download,
 Scrivania o Documenti: macOS impedisce all'app di leggere quelle cartelle protette.
 
@@ -121,7 +122,8 @@ server/ai.js       riassunto → prompt icona, collegamenti, temi, sintesi, cont
 server/images.js   Pollinations / Cloudflare
 server/svg.js      pulizia degli SVG disegnati da Claude
 mac/electron/      app desktop (Electron)
-mac/crea-app.command  costruisce e installa chatStorm.app
+mac/crea-app.command  costruisce e installa chatStorm.app (solo la prima volta)
+mac/aggiorna-app.sh   ricostruisce l'app in background quando cambia (lo lancia il server)
 server/db.js       SQLite (node:sqlite)
 public/            interfaccia (JavaScript puro, nessuna build)
 ```

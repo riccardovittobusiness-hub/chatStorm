@@ -8,6 +8,7 @@ import { streamChat, MOCK, listClaudeModels } from './claude.js';
 import { codexStatus, CODEX_MODELS } from './codex.js';
 import * as ai from './ai.js';
 import { generateImage } from './images.js';
+import * as desktop from './desktop-app.js';
 
 const PORT = Number(process.env.PORT || 4317);
 const STARTED = Date.now();
@@ -92,7 +93,7 @@ const route = (method, pattern, handler) => {
   routes.push({ method, re, keys, handler });
 };
 
-route('GET', '/api/status', () => ({ mock: MOCK, started: STARTED, settings: maskSettings(db.getSettings()) }));
+route('GET', '/api/status', () => ({ mock: MOCK, started: STARTED, appUpdate: desktop.appUpdate, settings: maskSettings(db.getSettings()) }));
 // Usato dall'app per Mac per riavviare il server dopo un aggiornamento (solo da questo computer)
 route('POST', '/api/shutdown', () => { setTimeout(() => process.exit(0), 150); return { ok: true }; });
 
@@ -293,4 +294,7 @@ createServer(async (req, res) => {
   }
 }).listen(PORT, '127.0.0.1', () => {
   console.log(`\n  chatStorm  →  http://localhost:${PORT}${MOCK ? '   (modalità simulata)' : ''}\n`);
+
+  // dall'app per Mac: se nome, icona o main.js sono cambiati, ricostruisce l'app da solo (dopo che la finestra si è caricata)
+  if (!MOCK) setTimeout(() => desktop.maybeUpdateDesktopApp((st) => broadcast('app-update', { state: st })), 4000);
 });
