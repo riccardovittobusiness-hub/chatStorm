@@ -1,5 +1,12 @@
 // Badge standard per le chat: numero, lettere o simbolo, con forma, colore e stile modificabili.
-export const BADGE_COLORS = ['#1F57E0', '#2E9BEA', '#119C9C', '#2F9E5B', '#6A55D0', '#D2527A', '#E0584A', '#E08A1F', '#5F7393', '#0E1F3D'];
+// Palette Ci siamo: blu, navy, azzurro, giallo e qualche tono di supporto.
+export const BADGE_COLORS = ['#3965FA', '#1B1B39', '#99B7FC', '#FFD23F', '#2347D6', '#1E9E86', '#6B5BE6', '#E2557E', '#F28C38', '#4A4A6A'];
+/** Colore del testo leggibile sopra un colore di fondo (navy sui colori chiari, bianco sugli scuri). */
+export function inkFor(hex) {
+  const n = parseInt(String(hex).slice(1), 16); if (Number.isNaN(n)) return '#fff';
+  const c = [n >> 16, (n >> 8) & 255, n & 255].map(v => { v /= 255; return v <= .03928 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4; });
+  return (.2126 * c[0] + .7152 * c[1] + .0722 * c[2]) > .4 ? '#1B1B39' : '#fff';
+}
 export const SHAPES = { squircle: 'Arrotondato', circle: 'Cerchio', square: 'Quadrato', hexagon: 'Esagono', diamond: 'Rombo' };
 export const KINDS = { letters: 'Lettere', number: 'Numero', symbol: 'Simbolo' };
 
@@ -20,7 +27,7 @@ export function shade(hex, amt) {
 }
 
 export function defaultBadge(chat) {
-  return { kind: 'letters', text: initials(chat?.title), shape: 'squircle', color: BADGE_COLORS[hashOf(chat?.id || '') % 6], style: 'gradient' };
+  return { kind: 'letters', text: initials(chat?.title), shape: 'squircle', color: BADGE_COLORS[[0, 1, 2, 4, 5, 6][hashOf(chat?.id || '') % 6]], style: 'gradient' };
 }
 /** Badge effettivo della chat (quello salvato, completato con i valori predefiniti). */
 export function badgeOf(chat) {
@@ -37,7 +44,7 @@ export function badgeHTML(b) {
   const t = badgeText(b);
   const len = [...t].length;
   const size = b.kind === 'symbol' ? 46 : len >= 3 ? 30 : len === 2 ? 38 : 48;
-  return `<div class="bdg bdg-${esc(b.shape)}" style="background:${badgeFill(b)}"><span style="font-size:${size}cqw">${esc(t)}</span></div>`;
+  return `<div class="bdg bdg-${esc(b.shape)}${inkFor(b.color) === '#fff' ? '' : ' light'}" style="background:${badgeFill(b)};color:${inkFor(b.color)}"><span style="font-size:${size}cqw">${esc(t)}</span></div>`;
 }
 
 /** Tracciato della forma in un quadrato (x, y, s), per <canvas>. */
@@ -60,7 +67,7 @@ export function drawBadge(g, b, x, y, s, font = "'Bricolage Grotesque', system-u
   g.fill();
   const t = badgeText(b), len = [...t].length;
   const k = b.kind === 'symbol' ? 0.46 : len >= 3 ? 0.30 : len === 2 ? 0.38 : 0.48;
-  g.fillStyle = '#fff'; g.font = `700 ${s * k}px ${font}`; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillStyle = inkFor(b.color); g.font = `700 ${s * k}px ${font}`; g.textAlign = 'center'; g.textBaseline = 'middle';
   g.fillText(t, x + s / 2, y + s / 2 + s * 0.02);
   g.textAlign = 'left'; g.textBaseline = 'alphabetic';
 }

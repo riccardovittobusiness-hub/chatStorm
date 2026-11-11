@@ -9,14 +9,15 @@ const $ = (id) => document.getElementById(id);
 
 // Le chiavi restano le stesse della prima versione (compatibilità con le mappe salvate); cambiano i toni.
 export const COLORS = {
-  blue: '#CFE6FF', green: '#CDF2E3', purple: '#E2DBFF', yellow: '#FFEDB3', pink: '#FFDCE6', orange: '#FFE0CC', gray: '#E3EBF5',
+  blue: '#DDE5FF', green: '#D5F1E6', purple: '#E7E1FF', yellow: '#FFEFA8', pink: '#FFE0EA', orange: '#FFE3CC', gray: '#ECECF4',
 };
 export const FRAME_COLORS = {
-  blue: '#1F57E0', orange: '#2E9BEA', green: '#119C9C', purple: '#6A55D0', pink: '#D2527A', gray: '#5F7393',
+  blue: '#3965FA', orange: '#7E9CFB', green: '#1E9E86', purple: '#6B5BE6', pink: '#E2557E', gray: '#1B1B39',
 };
 export const EDGE_COLORS = {
-  gray: '#6B7FA0', blue: '#1F57E0', orange: '#2E9BEA', green: '#119C9C', purple: '#6A55D0', red: '#E0584A',
+  gray: '#8486A6', blue: '#3965FA', orange: '#7E9CFB', green: '#1E9E86', purple: '#6B5BE6', red: '#E2557E',
 };
+export const SUGGESTED = '#E5A800';
 const DEFAULTS = {
   chat: { w: 96, h: 96 },
   note: { w: 200, h: 160, color: 'blue', text: '' },
@@ -210,7 +211,7 @@ export class Board {
       const spinner = chat?.icon_status === 'generating' ? '<div class="spinner"><div class="spin"></div></div>' : '';
       const badge = chat?.msg_count ? `<div class="badge">${chat.msg_count}</div>` : '';
       const prov = chat?.provider === 'codex' ? '<div class="prov" title="Risponde ChatGPT (Codex)">GPT</div>' : '';
-      return `<div class="icon">${chat ? iconHTML(chat, it.chatId) : '<div class="initials" style="background:#999">?</div>'}${spinner}</div>${badge}${prov}
+      return `<div class="icon">${chat ? iconHTML(chat, it.chatId) : '<div class="initials" style="background:#8486A6">?</div>'}${spinner}</div>${badge}${prov}
         <div class="label">${escHTML(chat?.title || t('Chat eliminata'))}</div>${handles}${resize}`;
     }
     if (it.type === 'note' || it.type === 'text') {
@@ -231,7 +232,7 @@ export class Board {
       const a = byId[e.from], b = byId[e.to];
       if (!a || !b) continue;
       const g = G.edgeGeometry(G.bounds(a), G.bounds(b), e.shape);
-      const color = e.status === 'suggested' ? '#E0A100' : (EDGE_COLORS[e.color] || EDGE_COLORS.gray);
+      const color = e.status === 'suggested' ? SUGGESTED : (EDGE_COLORS[e.color] || EDGE_COLORS.gray);
       const dash = e.dash ? 'stroke-dasharray="7 6"' : '';
       const arrow = e.arrow || 'end';
       const heads = (arrow === 'end' || arrow === 'both' ? `<path class="edge-head" d="${G.arrowHead(g.end)}" fill="${color}"/>` : '')
@@ -840,10 +841,10 @@ export class Board {
     for (const it of this.state.items) {
       const b = G.bounds(it);
       if (it.type === 'frame') { g.strokeStyle = FRAME_COLORS[it.color] || '#888'; g.lineWidth = 1; g.strokeRect(ox + b.x * s, oy + b.y * s, b.w * s, b.h * s); continue; }
-      g.fillStyle = it.type === 'chat' ? '#2E9BEA' : it.type === 'note' ? (COLORS[it.color] || COLORS.blue) : '#8FA3C0';
+      g.fillStyle = it.type === 'chat' ? '#3965FA' : it.type === 'note' ? (COLORS[it.color] || COLORS.blue) : '#8486A6';
       g.fillRect(ox + b.x * s, oy + b.y * s, Math.max(2, b.w * s), Math.max(2, (it.type === 'chat' ? it.w : b.h) * s));
     }
-    g.strokeStyle = '#1F57E0'; g.lineWidth = 1.5;
+    g.strokeStyle = '#3965FA'; g.lineWidth = 1.5;
     g.strokeRect(ox + vp.x * s, oy + vp.y * s, vp.w * s, vp.h * s);
   }
 
@@ -858,8 +859,8 @@ export class Board {
     const g = cv.getContext('2d');
     g.scale(scale, scale);
     g.translate(pad - u.x, pad + 30 - u.y);
-    g.fillStyle = '#EEF6FF'; g.fillRect(u.x - pad, u.y - pad - 30, u.w + pad * 2, u.h + pad * 2 + 30);
-    const font = (px, w = 400) => `${w} ${px}px 'Instrument Sans', system-ui, -apple-system, sans-serif`;
+    g.fillStyle = '#F6F7FF'; g.fillRect(u.x - pad, u.y - pad - 30, u.w + pad * 2, u.h + pad * 2 + 30);
+    const font = (px, w = 400) => `${w} ${px}px 'Bricolage Grotesque', system-ui, -apple-system, sans-serif`;
     const wrap = (text, maxW) => {
       const out = [];
       for (const para of text.split('\n')) {
@@ -888,7 +889,7 @@ export class Board {
     for (const e of this.state.edges) {
       const a = byId[e.from], b = byId[e.to]; if (!a || !b) continue;
       const geo = G.edgeGeometry(G.bounds(a), G.bounds(b), e.shape);
-      const color = e.status === 'suggested' ? '#E0A100' : (EDGE_COLORS[e.color] || EDGE_COLORS.gray);
+      const color = e.status === 'suggested' ? SUGGESTED : (EDGE_COLORS[e.color] || EDGE_COLORS.gray);
       g.strokeStyle = color; g.fillStyle = color; g.lineWidth = 2;
       g.setLineDash(e.dash || e.status === 'suggested' ? [7, 6] : []);
       g.stroke(new Path2D(geo.d)); g.setLineDash([]);
@@ -897,9 +898,9 @@ export class Board {
       if (e.label) {
         g.font = font(12);
         const w = g.measureText(e.label).width + 14;
-        g.fillStyle = '#EEF6FF'; g.strokeStyle = '#C9DAF0'; g.lineWidth = 1;
+        g.fillStyle = '#FFFFFF'; g.strokeStyle = '#D5D8EE'; g.lineWidth = 1;
         rr(geo.mid.x - w / 2, geo.mid.y - 10, w, 20, 10); g.fill(); g.stroke();
-        g.fillStyle = '#0E1F3D'; g.textAlign = 'center'; g.fillText(e.label, geo.mid.x, geo.mid.y + 4); g.textAlign = 'left';
+        g.fillStyle = '#1B1B39'; g.textAlign = 'center'; g.fillText(e.label, geo.mid.x, geo.mid.y + 4); g.textAlign = 'left';
       }
     }
     // elementi
@@ -911,19 +912,19 @@ export class Board {
         const img = spec.type === 'img' ? await loadImg(spec.src) : null;
         if (img) { g.save(); rr(it.x, it.y, it.w, it.w, it.w * 0.24); g.clip(); g.drawImage(img, it.x, it.y, it.w, it.w); g.restore(); }
         else drawBadge(g, spec.type === 'badge' ? spec.badge : iconSpec({ id: it.chatId, title: chat?.title }).badge, it.x, it.y, it.w);
-        g.fillStyle = '#0E1F3D'; g.font = font(12.5); g.textAlign = 'center';
+        g.fillStyle = '#1B1B39'; g.font = font(12.5); g.textAlign = 'center';
         wrap(chat?.title || '', Math.max(it.w, 120)).slice(0, 2).forEach((l, i) => g.fillText(l, it.x + it.w / 2, it.y + it.w + 17 + i * 15));
         g.textAlign = 'left';
       } else if (it.type === 'note') {
         g.fillStyle = COLORS[it.color] || COLORS.yellow;
         g.shadowColor = 'rgba(0,0,0,.12)'; g.shadowBlur = 8; g.shadowOffsetY = 3;
         g.fillRect(it.x, it.y, it.w, it.h); g.shadowColor = 'transparent';
-        g.fillStyle = '#0E1F3D'; g.font = font(14);
+        g.fillStyle = '#1B1B39'; g.font = font(14);
         g.save(); g.beginPath(); g.rect(it.x, it.y, it.w, it.h); g.clip();
         wrap(plain(it.text || ''), it.w - 24).forEach((l, i) => g.fillText(l, it.x + 12, it.y + 26 + i * 19.6));
         g.restore();
       } else if (it.type === 'text') {
-        g.fillStyle = '#0E1F3D'; g.font = font(18);
+        g.fillStyle = '#1B1B39'; g.font = font(18);
         wrap(plain(it.text || ''), it.w - 8).forEach((l, i) => g.fillText(l, it.x + 4, it.y + 22 + i * 25));
       }
     }

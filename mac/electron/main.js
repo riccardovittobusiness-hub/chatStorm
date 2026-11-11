@@ -90,7 +90,7 @@ function createWindow() {
   win = new BrowserWindow({
     width: 1440, height: 900, minWidth: 980, minHeight: 640,
     title: 'ClaudioStorm',
-    backgroundColor: '#071937',
+    backgroundColor: '#F6F7FF',
     titleBarStyle: 'hiddenInset',
     trafficLightPosition: { x: 16, y: 18 },
     show: false,

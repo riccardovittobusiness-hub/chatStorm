@@ -1,6 +1,6 @@
 // Anteprima di una mappa disegnata su <canvas> (usata nella vista d'insieme).
 import * as G from './geom.js';
-import { COLORS, FRAME_COLORS, EDGE_COLORS } from './board.js';
+import { COLORS, FRAME_COLORS, EDGE_COLORS, SUGGESTED } from './board.js';
 import { iconSpec, drawBadge } from './badge.js';
 import { plain } from './md.js';
 import { t } from './i18n.js';
@@ -19,16 +19,16 @@ export async function drawThumb(canvas, state, getChat) {
   const W = canvas.width, H = canvas.height;
   // superficie
   const bg = g.createLinearGradient(0, 0, 0, H);
-  bg.addColorStop(0, '#F5F9FF'); bg.addColorStop(1, '#E8F2FF');
+  bg.addColorStop(0, '#FFFFFF'); bg.addColorStop(1, '#F2F4FF');
   g.fillStyle = bg; g.fillRect(0, 0, W, H);
-  g.fillStyle = 'rgba(150,185,225,.45)';
+  g.fillStyle = 'rgba(27,27,57,.16)';
   const step = W / 40;
   for (let x = step / 2; x < W; x += step) for (let y = step / 2; y < H; y += step) g.fillRect(x, y, 1.6, 1.6);
 
   const items = state?.items || [];
   const u = G.unionBounds(items);
   if (!u) {
-    g.fillStyle = '#8FA3C0'; g.font = `500 ${W / 26}px 'Instrument Sans', system-ui, sans-serif`; g.textAlign = 'center';
+    g.fillStyle = '#8486A6'; g.font = `500 ${W / 26}px 'Bricolage Grotesque', system-ui, sans-serif`; g.textAlign = 'center';
     g.fillText(t('Mappa vuota'), W / 2, H / 2); g.textAlign = 'left';
     return;
   }
@@ -50,7 +50,7 @@ export async function drawThumb(canvas, state, getChat) {
   for (const e of state.edges || []) {
     const a = byId[e.from], b = byId[e.to]; if (!a || !b) continue;
     const geo = G.edgeGeometry(G.bounds(a), G.bounds(b), e.shape);
-    const col = e.status === 'suggested' ? '#E0A100' : (EDGE_COLORS[e.color] || EDGE_COLORS.gray);
+    const col = e.status === 'suggested' ? SUGGESTED : (EDGE_COLORS[e.color] || EDGE_COLORS.gray);
     g.strokeStyle = col; g.fillStyle = col; g.lineWidth = 2.2 * lw;
     g.stroke(new Path2D(geo.d));
     if (e.arrow !== 'none') g.fill(new Path2D(G.arrowHead(geo.end, 11 * Math.max(1, lw))));
@@ -61,25 +61,25 @@ export async function drawThumb(canvas, state, getChat) {
       const chat = getChat(it.chatId);
       const spec = iconSpec(chat || { id: it.chatId, title: '?' });
       g.save();
-      g.shadowColor = 'rgba(12,42,91,.35)'; g.shadowBlur = 14 * s; g.shadowOffsetY = 5 * s;
+      g.shadowColor = 'rgba(27,27,57,.35)'; g.shadowBlur = 14 * s; g.shadowOffsetY = 5 * s;
       if (spec.type === 'badge') drawBadge(g, spec.badge, it.x, it.y, it.w);
-      else { g.fillStyle = '#5C8FD8'; rr(it.x, it.y, it.w, it.w, it.w * 0.24); g.fill(); }
+      else { g.fillStyle = '#3965FA'; rr(it.x, it.y, it.w, it.w, it.w * 0.24); g.fill(); }
       g.restore();
       if (spec.type === 'img') pending.push(loadImg(spec.src).then(im => ({ im, it })));
       if (s > 0.35) {
-        g.fillStyle = '#0E1F3D'; g.font = `500 ${13}px 'Instrument Sans', system-ui, sans-serif`; g.textAlign = 'center';
+        g.fillStyle = '#1B1B39'; g.font = `500 ${13}px 'Bricolage Grotesque', system-ui, sans-serif`; g.textAlign = 'center';
         g.fillText((chat?.title || '').slice(0, 22), it.x + it.w / 2, it.y + it.w + 18); g.textAlign = 'left';
       }
     } else if (it.type === 'note') {
       g.save();
-      g.shadowColor = 'rgba(12,42,91,.25)'; g.shadowBlur = 10 * s; g.shadowOffsetY = 4 * s;
+      g.shadowColor = 'rgba(27,27,57,.25)'; g.shadowBlur = 10 * s; g.shadowOffsetY = 4 * s;
       g.fillStyle = COLORS[it.color] || COLORS.blue; g.fillRect(it.x, it.y, it.w, it.h);
       g.restore();
       g.fillStyle = 'rgba(14,31,61,.35)';
       const lines = Math.min(Math.floor((it.h - 26) / 20), Math.ceil(plain(it.text || '').length / 30));
       for (let i = 0; i < lines; i++) g.fillRect(it.x + 13, it.y + 18 + i * 20, (it.w - 26) * (i % 3 === 2 ? 0.6 : 0.9), 7);
     } else if (it.type === 'text') {
-      g.fillStyle = 'rgba(12,42,91,.55)'; g.fillRect(it.x + 4, it.y + 8, Math.min(it.w, 14 * (it.text || '').length), 12);
+      g.fillStyle = 'rgba(27,27,57,.55)'; g.fillRect(it.x + 4, it.y + 8, Math.min(it.w, 14 * (it.text || '').length), 12);
     }
   }
   g.restore();

@@ -3,10 +3,11 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Claude Canvas</title>
+  <title>ClaudioStorm</title>
+  <link rel="icon" href="/img/occhio.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=Fraunces:ital,opsz,wght@1,9..144,400;1,9..144,500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/app.css">
 </head>
 <body>
@@ -16,12 +17,16 @@
     <!-- Barra laterale -->
     <aside id="sidebar">
       <div class="brand">
-        <svg class="cube" viewBox="0 0 32 32" aria-hidden="true">
-          <path d="M16 3 28 9.5v13L16 29 4 22.5v-13Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
-          <path d="M4 9.5 16 16l12-6.5M16 16v13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
-          <path d="M16 16 28 9.5v13L16 29Z" fill="currentColor" opacity=".28"/>
+        <svg class="eye" viewBox="0 0 150 130" aria-hidden="true">
+          <g fill="none" stroke="currentColor" stroke-width="10">
+            <path d="M8,86 C30,52 68,40 100,44 C120,47 135,60 143,73"/><path d="M30,98 C52,117 96,119 124,94"/>
+            <path d="M83,63.9 A17,17 0 1 0 91.6,75.5"/>
+            <path d="M33,49 C30,42 27,37 23,30"/><path d="M57,39 C56,32 56,26 57,17"/><path d="M82,35 C84,28 87,22 92,14"/>
+          </g>
+          <circle cx="75" cy="79" r="7.5" fill="currentColor"/>
+          <g fill="none" stroke="var(--giallo)" stroke-width="6" stroke-linecap="round"><path d="M113,27 C120,28 126,31 131,35"/><path d="M111,16 C119,17 127,20 134,25"/></g>
         </svg>
-        <span>Canvas</span>
+        <span class="wordmark">Claudio<em>Storm</em></span>
         <button class="ghost" id="btn-collapse" title="Nascondi pannello">⟨</button>
       </div>
 
@@ -144,6 +149,7 @@
       </nav>
 
       <section id="overview" hidden tabindex="-1" aria-label="Tutte le mappe">
+        <div class="ov-word" aria-hidden="true">mappe</div>
         <header class="ov-head">
           <div>
             <h2 id="ov-title"></h2>

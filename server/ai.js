@@ -52,7 +52,9 @@ export function fullImagePrompt(chat, settings) {
   return `${chat.image_prompt || chat.title}. Style: ${settings.iconStyle}`;
 }
 
-const SVG_PALETTE = '#0C2A5B #1F57E0 #2E9BEA #38A8F5 #A9DBFF #EEF6FF #119C9C #6A55D0 #FFFFFF';
+// Palette e stile del marchio Ci siamo: tratto unico spesso, come il logo disegnato a mano.
+const SVG_PALETTE = 'navy #1B1B39, blu #3965FA, blu scuro #2347D6, azzurro #99B7FC, ghiaccio #E9EBFF, bianco #FFFFFF, giallo #FFD23F (solo come accento)';
+const SVG_BACKGROUNDS = ['#3965FA', '#1B1B39', '#E9EBFF', '#2347D6'];
 
 /** Claude disegna un'icona SVG che rappresenta la chat. Restituisce il codice SVG già ripulito. */
 export async function drawSvgIcon(chat, settings) {
@@ -64,10 +66,14 @@ Idea visiva suggerita: ${chat.image_prompt || '(scegli tu una metafora visiva ch
 
 Regole:
 - Rispondi SOLO con un elemento <svg> completo, viewBox="0 0 100 100", nient'altro.
-- Riempi tutto il quadrato con uno sfondo (rettangolo 100x100) a gradiente lineare nei toni del blu; NON arrotondare gli angoli (lo fa l'app).
-- Al centro UN soggetto semplice e riconoscibile che rappresenti il tema (oggetto o metafora), fatto di forme geometriche
-  pulite, chiaro su fondo scuro, leggibile anche a 32 pixel. Al massimo 12 forme, linee spesse (almeno 3).
-- Puoi usare <defs> con linearGradient/radialGradient e riferimenti url(#id). Niente testo, lettere o numeri,
+- Riempi tutto il quadrato con uno sfondo piatto (rettangolo 100x100) di colore ${SVG_BACKGROUNDS[[...(chat.id || '')].reduce((h, c) => h + c.charCodeAt(0), 0) % SVG_BACKGROUNDS.length]}; NON arrotondare gli angoli (lo fa l'app).
+- Al centro UN soggetto semplice e riconoscibile che rappresenti il tema (oggetto o metafora), disegnato in stile
+  "monoline": tratti spessi (stroke-width 6-8), fill="none", estremità squadrate, curve morbide disegnate a mano, pochi
+  tratti separati che non si toccano (come un logo disegnato con un pennarello). Puoi aggiungere uno o due piccoli
+  tratti arrotondati "a onda" vicino al soggetto e al massimo un piccolo pieno (un punto o un cerchio).
+- Colore dei tratti: bianco o azzurro sui fondi scuri, blu #3965FA sul fondo ghiaccio. Il giallo solo per un dettaglio.
+- Leggibile anche a 32 pixel. Al massimo 10 forme.
+- Niente gradienti. Niente testo, lettere o numeri,
   niente <image>, <style>, script, filtri complessi o risorse esterne.
 - Palette consigliata: ${SVG_PALETTE}; puoi aggiungere un solo colore d'accento caldo se aiuta.
 - Meno di 3000 caratteri.`;

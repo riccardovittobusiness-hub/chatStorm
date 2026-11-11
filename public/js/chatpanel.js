@@ -127,7 +127,7 @@ export class ChatPanel {
     on('ie-kind', b.kind); on('ie-shape', b.shape); on('ie-colors', b.color); on('ie-style', b.style);
     if (document.activeElement !== $('ie-text')) $('ie-text').value = b.text || '';
     $('ie-text').maxLength = b.kind === 'symbol' ? 4 : 3;
-    $('ie-color').value = /^#[0-9a-f]{6}$/i.test(b.color) ? b.color : '#1F57E0';
+    $('ie-color').value = /^#[0-9a-f]{6}$/i.test(b.color) ? b.color : '#3965FA';
   }
 
   async open(chatId) {

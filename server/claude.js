@@ -159,13 +159,17 @@ async function mockOneShot(prompt) {
   }
   if (prompt.includes('TASK:SVG')) {
     let h = 0; for (const c of prompt) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+    // Icone finte nello stile del marchio: tratti spessi su fondo piatto.
+    const bg = ['#3965FA', '#1B1B39', '#E9EBFF', '#2347D6'][h % 4];
+    const ink = bg === '#E9EBFF' ? '#3965FA' : '#FFFFFF', acc = bg === '#E9EBFF' ? '#1B1B39' : '#99B7FC';
+    const st = `fill="none" stroke="${ink}" stroke-width="7"`;
     const shapes = [
-      '<circle cx="50" cy="46" r="18" fill="none" stroke="#fff" stroke-width="6"/><path d="M42 70h16M44 78h12" stroke="#A9DBFF" stroke-width="5" stroke-linecap="round"/>',
-      '<path d="M26 66 50 28l24 38Z" fill="#fff"/><circle cx="50" cy="56" r="6" fill="#1F57E0"/>',
-      '<rect x="28" y="30" width="44" height="34" rx="8" fill="#fff"/><path d="M38 64 34 76l14-12" fill="#fff"/><path d="M38 44h24M38 52h16" stroke="#1F57E0" stroke-width="5" stroke-linecap="round"/>',
-      '<path d="M50 24c12 10 18 22 14 36l-14 14-14-14c-4-14 2-26 14-36Z" fill="#fff"/><circle cx="50" cy="46" r="6" fill="#2E9BEA"/>',
+      `<path d="M50 24a20 20 0 0 0-11 36.5V68h22v-7.5A20 20 0 0 0 50 24" ${st}/><path d="M41 78h18" ${st}/><path d="M74 22c4 1 7 3 9 6M76 14c5 1 9 3 12 7" fill="none" stroke="${acc}" stroke-width="4" stroke-linecap="round"/>`,
+      `<path d="M20 70 42 34l14 22 8-12 16 26" ${st}/><circle cx="70" cy="28" r="6" fill="#FFD23F"/>`,
+      `<path d="M24 32h52v30H46l-14 12v-12h-8z" ${st}/><path d="M36 44h28" ${st}/>`,
+      `<path d="M50 20c14 12 18 28 12 44H38c-6-16-2-32 12-44" ${st}/><circle cx="50" cy="44" r="5" fill="${acc}"/><path d="M42 74l-4 8M58 74l4 8" ${st}/>`,
     ];
-    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#38A8F5"/><stop offset="1" stop-color="#0C2A5B"/></linearGradient></defs><rect width="100" height="100" fill="url(#g)"/>${shapes[h % shapes.length]}</svg>`;
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="${bg}"/>${shapes[h % shapes.length]}</svg>`;
   }
   if (prompt.includes('TASK:LINKS')) {
     const links = [];

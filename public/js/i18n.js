@@ -34,7 +34,7 @@ const EN = {
   // ---- pagina ----
   'Modalità simulata: le risposte di Claude sono finte. Avvia con': 'Demo mode: Claude\'s replies are simulated. Start with',
   'per usare Claude davvero.': 'to use Claude for real.',
-  'Mappe': 'Maps', 'Chat in questa mappa': 'Chats in this map', 'Impostazioni': 'Settings', 'Scorciatoie': 'Shortcuts',
+  'Mappe': 'Maps', 'mappe': 'maps', 'Chat in questa mappa': 'Chats in this map', 'Impostazioni': 'Settings', 'Scorciatoie': 'Shortcuts',
   'Nuova chat con Claude': 'New chat with Claude', 'Nuova chat con ChatGPT (Codex)': 'New chat with ChatGPT (Codex)',
   'Nota': 'Note', 'Testo': 'Text', 'Riquadro': 'Frame', 'Disponi': 'Arrange',
   'Griglia': 'Grid', 'Albero, segue le frecce': 'Tree, follows the arrows', 'Grafo, avvicina i collegati': 'Graph, pulls linked items together',

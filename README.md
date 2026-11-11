@@ -1,8 +1,8 @@
-# Claude Canvas
+# ClaudioStorm
 
 **Il brainstorming con Claude, visto dall'alto.**
 
-Quando si ragiona su un'idea con un assistente AI, le conversazioni si accumulano in un elenco verticale e il quadro d'insieme si perde: quale chat approfondiva cosa, dove era nata un'alternativa, quali idee si contraddicono. Claude Canvas trasforma ogni conversazione in un oggetto da disporre nello spazio.
+Quando si ragiona su un'idea con un assistente AI, le conversazioni si accumulano in un elenco verticale e il quadro d'insieme si perde: quale chat approfondiva cosa, dove era nata un'alternativa, quali idee si contraddicono. ClaudioStorm trasforma ogni conversazione in un oggetto da disporre nello spazio.
 
 Ogni chat diventa un'**icona** sulla lavagna: dopo i primi messaggi Claude le dà un titolo, ne scrive un riassunto e disegna un'icona che ne rappresenta il contenuto. In alternativa puoi usare badge con lettere, numeri o simboli, scegliendo forma e colore. Le icone si trascinano come sul desktop, si ingrandiscono, si allineano e si collegano con frecce etichettate ("approfondisce", "contraddice", "dipende da"). Accanto alle chat puoi aggiungere note, testi e riquadri tematici, come su una lavagna di Miro.
 
@@ -63,10 +63,16 @@ Ogni chat può usare **Claude** (tramite Claude Code) o **ChatGPT** (tramite Cod
 In ⚙ Impostazioni → Generale scegli **Italiano** o **English**: cambia la lingua dell'interfaccia e quella in cui rispondono
 Claude e ChatGPT (riassunti, titoli e strumenti della mappa compresi).
 
+## Design
+L'interfaccia usa l'identità visiva di [Ci siamo](https://www.cisiamoagency.com/): fondo ghiaccio marmorizzato con grana, superfici navy
+(`#1B1B39`), azioni blu (`#3965FA`) a pillola col pallino, accenti azzurri e gialli, Bricolage Grotesque con Fraunces corsivo.
+Il logo è una variazione di quello di Ci siamo: al posto della mano, un occhio disegnato con lo stesso tratto (`public/img/occhio.svg`,
+icona dell'app in `mac/icon.svg`).
+
 ## Icone delle chat
 Si sceglie in ⚙ **Impostazioni → Icone delle chat**:
 - **Disegnate da Claude** (predefinito): dopo il primo scambio il modello scelto per gli strumenti (Claude o ChatGPT) riassume la chat e disegna un'icona vettoriale (SVG)
-  nei toni del blu. Nessun servizio esterno: usa il tuo abbonamento. L'SVG viene ripulito da script e risorse esterne.
+  a tratto spesso, nello stile del logo, con la palette del marchio. Nessun servizio esterno: usa il tuo abbonamento. L'SVG viene ripulito da script e risorse esterne.
 - **Badge standard**: lettere, numero o simbolo, con forma (arrotondato, cerchio, quadrato, esagono, rombo), colore e stile
   (sfumato o pieno) modificabili.
 - **Immagine AI**: Pollinations.ai (anche senza chiave) o Cloudflare Workers AI, con chiave nelle impostazioni.
