@@ -31,20 +31,20 @@ BUILT="$OUT/chatStorm-darwin-$ARCH/chatStorm.app"
 [ -d "$BUILT" ] || fail "app costruita non trovata"
 codesign --force --deep --sign - "$BUILT" || fail "firma locale non riuscita"
 
-# chiudo la versione aperta (vecchio e nuovo nome) e il suo server, così la nuova parte pulita.
+# chiudo la versione aperta e il suo server, così la nuova parte pulita.
 # Questo script è staccato da entrambi e continua.
 for sig in TERM KILL; do
-  /usr/bin/killall -$sig ClaudioStorm chatStorm >/dev/null 2>&1
-  /usr/bin/pkill -$sig -f "(ClaudioStorm|chatStorm)\.app/Contents/MacOS/" >/dev/null 2>&1
+  /usr/bin/killall -$sig chatStorm >/dev/null 2>&1
+  /usr/bin/pkill -$sig -f "chatStorm\.app/Contents/MacOS/" >/dev/null 2>&1
   /usr/bin/pkill -$sig -f "server/index\.js" >/dev/null 2>&1
   sleep 2
 done
 
 mkdir -p "$APPS"
-rm -rf "$APPS/chatStorm.app" "$APPS/ClaudioStorm.app"
+rm -rf "$APPS/chatStorm.app"
 ditto "$BUILT" "$APPS/chatStorm.app" || fail "copia in Applicazioni non riuscita"
 xattr -dr com.apple.quarantine "$APPS/chatStorm.app" 2>/dev/null
-rm -rf "$OUT" "$PROJ/mac/ClaudioStorm.app" "$PROJ/mac/_vecchia-app"
+rm -rf "$OUT"
 
 mkdir -p "$PROJ/data"
 print -r -- "$BUILD_ID" > "$PROJ/data/app-build.txt"

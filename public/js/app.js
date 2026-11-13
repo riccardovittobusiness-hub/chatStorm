@@ -473,7 +473,7 @@ async function openSettings() {
     const el = $('codex-status'), c = p.codex;
     el.className = 'status ' + (c.installed && c.loggedIn ? 'ok' : 'warn');
     el.textContent = t(c.installing ? 'ChatGPT (Codex): installazione del supporto in corso…'
-      : !c.loggedIn ? 'ChatGPT (Codex): non risulti collegato. Apri avvia.command (o esegui npx codex login nella cartella del progetto) e accedi con il tuo account ChatGPT.'
+      : !c.loggedIn ? 'ChatGPT (Codex): non risulti collegato. Riapri installa.command (o esegui npx codex login nella cartella del progetto) e accedi con il tuo account ChatGPT.'
       : c.installed ? 'ChatGPT (Codex): pronto, collegato al tuo account ChatGPT.'
       : 'ChatGPT (Codex): collegato. Il supporto verrà installato al primo utilizzo (serve qualche secondo).');
   }).catch(() => {});

@@ -32,8 +32,7 @@ export function translateDOM(root = document.body) {
 
 const EN = {
   // ---- pagina ----
-  'Modalità simulata: le risposte sono finte. Avvia con': 'Demo mode: replies are simulated. Start with',
-  'per usare ChatGPT davvero.': 'to use ChatGPT for real.',
+  'Modalità simulata: le risposte sono finte. Per usare ChatGPT davvero installa l\'app con': 'Demo mode: replies are simulated. To use ChatGPT for real, install the app with',
   "Aggiorno l'app desktop: tra un minuto si chiude e si riapre da sola, con il nuovo nome e la nuova icona.": 'Updating the desktop app: in a minute it will close and reopen on its own, with the new name and icon.',
   'Mappe': 'Maps', 'mappe': 'maps', 'Chat in questa mappa': 'Chats in this map', 'Impostazioni': 'Settings', 'Scorciatoie': 'Shortcuts',
   'Nuova chat (C, o doppio clic sulla lavagna)': 'New chat (C, or double-click the board)',
@@ -133,7 +132,7 @@ const EN = {
   'Elimina la chat (Canc)': 'Delete the chat (Delete)', '1 messaggio': '1 message', '{n} messaggi': '{n} messages',
   'ChatGPT sta rispondendo…': 'ChatGPT is replying…',
   'ChatGPT (Codex): installazione del supporto in corso…': 'ChatGPT (Codex): installing support…',
-  'ChatGPT (Codex): non risulti collegato. Apri avvia.command (o esegui npx codex login nella cartella del progetto) e accedi con il tuo account ChatGPT.': 'ChatGPT (Codex): not signed in. Open avvia.command (or run npx codex login in the project folder) and sign in with your ChatGPT account.',
+  'ChatGPT (Codex): non risulti collegato. Riapri installa.command (o esegui npx codex login nella cartella del progetto) e accedi con il tuo account ChatGPT.': 'ChatGPT (Codex): not signed in. Run installa.command again (or npx codex login in the project folder) and sign in with your ChatGPT account.',
   'ChatGPT (Codex): pronto, collegato al tuo account ChatGPT.': 'ChatGPT (Codex): ready, signed in with your ChatGPT account.',
   'ChatGPT (Codex): collegato. Il supporto verrà installato al primo utilizzo (serve qualche secondo).': 'ChatGPT (Codex): signed in. Support will be installed on first use (takes a few seconds).',
   'Impostazioni salvate': 'Settings saved', 'Funziona': 'It works', 'genero…': 'generating…', 'Non riuscita: {msg}': 'Failed: {msg}',

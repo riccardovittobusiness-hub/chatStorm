@@ -21,33 +21,30 @@ L'app gira sul tuo computer e usa **ChatGPT tramite Codex di OpenAI**, con il tu
 ---
 
 ## Requisiti
-- **Node.js 22.13 o più recente** (`node --version`)
-- **Un account ChatGPT Plus o Pro.** Il login si fa una volta con `avvia.command` (oppure `npx codex login` dalla cartella
-  del progetto), e vale anche se hai già fatto l'accesso nell'app Codex.
-- Le variabili `OPENAI_API_KEY` e `CODEX_API_KEY` vengono ignorate: l'app usa il tuo abbonamento, non una API key a consumo.
+- **Un Mac** (Apple Silicon o Intel). chatStorm è un'app desktop: non si usa dal browser.
+- **Node.js 22.13 o più recente** ([nodejs.org](https://nodejs.org)).
+- **Un account ChatGPT Plus o Pro.** Il login si fa una volta durante l'installazione e vale anche se hai già fatto
+  l'accesso nell'app Codex. Le variabili `OPENAI_API_KEY` e `CODEX_API_KEY` vengono ignorate: l'app usa il tuo
+  abbonamento, non una API key a consumo.
 
-## Avvio
-**App desktop per Mac:** apri la cartella `mac` e fai doppio clic su **`crea-app.command`** (una volta sola).
-Scarica Electron, costruisce **chatStorm.app** con la sua icona e la installa nella cartella Applicazioni del tuo utente
-(la trovi in Launchpad e con Spotlight; trascinala nel Dock). L'app ha una finestra sua, avvia il server quando la apri
-e lo spegne quando la chiudi; i link esterni si aprono nel browser. Dopo un aggiornamento del codice basta riaprirla.
-L'app **si aggiorna da sola**: se cambiano nome, icona o `mac/electron`, all'apertura si ricostruisce in background
-(`mac/aggiorna-app.sh`, log in `data/app-build.log`), si chiude e si riapre aggiornata. Niente Terminale.
-**Importante:** tieni la cartella del progetto nella tua cartella Inizio (per esempio `~/claude-canvas`), non in Download,
-Scrivania o Documenti: macOS impedisce all'app di leggere quelle cartelle protette.
+## Installazione
+1. Scarica il progetto (**Code → Download ZIP** su GitHub, oppure `git clone`) e metti la cartella nella tua cartella
+   **Inizio** (per esempio `~/chatStorm`). Non in Download, Scrivania o Documenti: macOS impedisce all'app di leggere
+   quelle cartelle protette.
+2. Fai doppio clic su **`installa.command`**. Installa le dipendenze, apre il login al tuo account ChatGPT,
+   costruisce **chatStorm.app** e la mette nella cartella Applicazioni del tuo utente. Si fa una volta sola.
+3. Apri **chatStorm** da Applicazioni, Launchpad o Spotlight, e trascinala nel Dock.
 
-**Primo avvio / da Terminale:** doppio clic su **`avvia.command`**. La prima volta installa le dipendenze e apre il login
-al tuo account ChatGPT; le volte successive avvia soltanto l'app.
+L'app ha una finestra sua: avvia il motore locale quando la apri e lo spegne quando la chiudi. Il motore risponde
+solo all'app, con un codice segreto salvato in `data/.app-token`: se apri l'indirizzo in un browser vedi solo un invito
+ad aprire l'app. I link esterni nelle chat si aprono nel browser.
 
-In alternativa, da terminale:
-```bash
-cd ClaudioStorm        # la cartella del progetto
-npm install
-npm start
-```
-Apri **http://localhost:4317**. Tieni aperta la finestra del Terminale finché usi l'app.
+L'app **si aggiorna da sola**: dopo un aggiornamento del codice basta riaprirla. Se cambiano nome, icona o
+`mac/electron`, all'apertura si ricostruisce in background (`mac/aggiorna-app.sh`, log in `data/app-build.log`),
+si chiude e si riapre aggiornata.
 
-Per provare l'interfaccia senza usare ChatGPT: `npm run mock` (risposte e icone simulate).
+**Per chi sviluppa:** `npm run mock` apre l'interfaccia nel browser con risposte e icone simulate, senza ChatGPT.
+
 
 ## ChatGPT (Codex)
 Le chat, i riassunti, le icone e gli strumenti della mappa usano **ChatGPT tramite il Codex SDK di OpenAI**
@@ -114,14 +111,14 @@ Premi `?` nell'app per l'elenco delle scorciatoie.
 
 ## Struttura
 ```
-server/index.js    server HTTP, API, streaming
+installa.command   installazione con doppio clic: dipendenze, login a ChatGPT, app in Applicazioni
+server/index.js    motore locale: API, streaming, accesso solo dall'app (server/app-token.js)
 server/model.js    ponte verso il modello (+ modalità simulata)
 server/codex.js    Codex SDK di OpenAI (ChatGPT)
 server/ai.js       riassunto → prompt icona, collegamenti, temi, sintesi, contesto dai collegati
 server/images.js   Pollinations / Cloudflare
 server/svg.js      pulizia degli SVG disegnati dal modello
-mac/electron/      app desktop (Electron)
-mac/crea-app.command  costruisce e installa chatStorm.app (solo la prima volta)
+mac/electron/      app desktop (Electron): avvia il motore e gli passa il codice segreto
 mac/aggiorna-app.sh   ricostruisce l'app in background quando cambia (lo lancia il server)
 server/db.js       SQLite (node:sqlite)
 public/            interfaccia (JavaScript puro, nessuna build)

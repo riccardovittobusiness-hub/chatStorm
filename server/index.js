@@ -1,4 +1,5 @@
-// Server locale: API REST + streaming, file statici. Avvio: npm start  →  http://localhost:4317
+// Server locale dell'app chatStorm: API REST + streaming, file statici. Lo avvia l'app per Mac (mac/electron/main.js).
+// Risponde solo all'app: ogni richiesta deve portare il token di data/.app-token. In modalità simulata (--mock, per lo sviluppo) è aperto al browser.
 import { createServer } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
 import { join, extname, normalize } from 'node:path';
@@ -9,9 +10,11 @@ import { codexStatus, CODEX_MODELS } from './codex.js';
 import * as ai from './ai.js';
 import { generateImage } from './images.js';
 import * as desktop from './desktop-app.js';
+import { appToken, tokenMatches } from './app-token.js';
 
 const PORT = Number(process.env.PORT || 4317);
 const STARTED = Date.now();
+const TOKEN = MOCK ? null : appToken();   // in modalità simulata (sviluppo) l'interfaccia si apre anche nel browser
 const PUBLIC = fileURLToPath(new URL('../public/', import.meta.url));
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
   '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.json': 'application/json' };
@@ -19,7 +22,7 @@ const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; cha
 db.ensureDefaultBoard();
 db.adoptOrphans();
 
-// ---------- Eventi push (SSE) verso il browser ----------
+// ---------- Eventi push (SSE) verso la finestra dell'app ----------
 const clients = new Set();
 function broadcast(type, data) {
   const payload = `data: ${JSON.stringify({ type, data })}\n\n`;
@@ -246,6 +249,12 @@ async function handleMessage(req, res, chatId) {
   if (!clientGone) res.end();
 }
 
+const ONLY_APP_PAGE = `<!DOCTYPE html><html lang="it"><meta charset="utf-8"><title>chatStorm</title>
+<body style="margin:0;height:100vh;display:grid;place-items:center;background:#F6F7FF;color:#1B1B39;font:16px/1.5 system-ui,sans-serif">
+<div style="max-width:420px;text-align:center;padding:24px"><h1 style="margin:0 0 8px;font-size:28px">chatStorm è un'app</h1>
+<p style="margin:0;color:#4A4A6A">Non si apre nel browser. Aprila dalla cartella Applicazioni, da Launchpad o con Spotlight.<br>
+Se non l'hai ancora installata, fai doppio clic su <b>installa.command</b> nella cartella del progetto.</p></div></body></html>`;
+
 // ---------- Server ----------
 createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
@@ -256,6 +265,12 @@ createServer(async (req, res) => {
   if (path.startsWith('/api/') && req.method !== 'GET') {
     const origin = req.headers.origin;
     if (origin && !local.test(origin.replace(/^http:\/\//, ''))) return send(res, 403, { error: 'Origine non consentita' });
+  }
+  // Solo dall'app: un browser non ha il token e riceve una pagina che rimanda all'app
+  if (TOKEN && !tokenMatches(TOKEN, req.headers['x-chatstorm-token'])) {
+    if (path.startsWith('/api/')) return send(res, 403, { error: "chatStorm si usa dall'app per Mac" });
+    res.writeHead(403, { 'Content-Type': 'text/html; charset=utf-8' });
+    return res.end(ONLY_APP_PAGE);
   }
   try {
     if (path === '/api/events') {
@@ -286,7 +301,7 @@ createServer(async (req, res) => {
     else res.end();
   }
 }).listen(PORT, '127.0.0.1', () => {
-  console.log(`\n  chatStorm  →  http://localhost:${PORT}${MOCK ? '   (modalità simulata)' : ''}\n`);
+  console.log(`\n  chatStorm  →  porta ${PORT}${TOKEN ? ' (solo per l\'app)' : ` · apri http://localhost:${PORT}${MOCK ? ' (modalità simulata)' : ''}`}\n`);
 
   // dall'app per Mac: se nome, icona o main.js sono cambiati, ricostruisce l'app da solo (dopo che la finestra si è caricata)
   if (!MOCK) setTimeout(() => desktop.maybeUpdateDesktopApp((st) => broadcast('app-update', { state: st })), 4000);

@@ -15,10 +15,10 @@ const INPUTS = ['mac/electron/main.js', 'mac/electron/package.json', 'mac/electr
 
 export let appUpdate = null;            // null | 'building'
 
-/** Avviato dall'app desktop (vecchia ClaudioStorm o nuova chatStorm)? */
+/** Avviato dall'app desktop? */
 function fromDesktopApp() {
   const ids = `${process.env.__CFBundleIdentifier || ''} ${process.env.XPC_SERVICE_NAME || ''}`;
-  return /riccardovitto\.(claudiostorm|chatstorm)/i.test(ids);
+  return /riccardovitto\.chatstorm/i.test(ids);
 }
 
 export function buildId() {

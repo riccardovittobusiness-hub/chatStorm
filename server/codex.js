@@ -60,7 +60,7 @@ function threadOptions(settings) {
 }
 function friendly(e) {
   const m = String(e?.message || e);
-  if (/log ?in|auth|unauthori[sz]ed|401/i.test(m)) return new Error('Codex non è collegato al tuo account ChatGPT. Apri avvia.command (o esegui npx codex login nella cartella del progetto), accedi con ChatGPT e riprova.');
+  if (/log ?in|auth|unauthori[sz]ed|401/i.test(m)) return new Error('Codex non è collegato al tuo account ChatGPT. Riapri installa.command (o esegui npx codex login nella cartella del progetto), accedi con ChatGPT e riprova.');
   return e instanceof Error ? e : new Error(m);
 }
 

@@ -1,6 +1,8 @@
 // chatStorm come app desktop: avvia il server locale, apre una finestra nativa, lo spegne all'uscita.
-const { app, BrowserWindow, shell, dialog, nativeImage } = require('electron');
+// Il server risponde solo a chi ha il token di data/.app-token: questa app lo aggiunge a ogni richiesta, un browser no.
+const { app, BrowserWindow, shell, dialog, nativeImage, session } = require('electron');
 const { spawn, execFileSync } = require('child_process');
+const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs');
 const http = require('http');
@@ -9,18 +11,29 @@ app.setName('chatStorm');
 const HOME = app.getPath('home');
 const URL = 'http://localhost:4317';
 
-// Cartella del progetto: scritta da crea-app.command in config.json
+// Cartella del progetto: scritta da installa.command in config.json
 let PROJ = path.join(HOME, 'claude-canvas');
 try { PROJ = JSON.parse(fs.readFileSync(path.join(__dirname, 'config.json'), 'utf8')).project || PROJ; } catch {}
 
 let server = null;
 let win = null;
+let TOKEN = '';
+
+/** Stessa regola di server/app-token.js: legge il token o ne crea uno nuovo. */
+function appToken() {
+  const dir = path.join(PROJ, 'data'), file = path.join(dir, '.app-token');
+  try { const t = fs.readFileSync(file, 'utf8').trim(); if (/^[0-9a-f]{64}$/.test(t)) return t; } catch {}
+  const t = crypto.randomBytes(32).toString('hex');
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(file, t + '\n', { mode: 0o600 });
+  return t;
+}
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
 function status() {
   return new Promise((resolve) => {
-    const req = http.get(URL + '/api/status', { timeout: 800 }, (res) => {
+    const req = http.get(URL + '/api/status', { timeout: 800, headers: { 'x-chatstorm-token': TOKEN } }, (res) => {
       let body = '';
       res.on('data', (c) => { body += c; });
       res.on('end', () => { try { resolve(JSON.parse(body)); } catch { resolve({}); } });
@@ -32,7 +45,7 @@ function status() {
 
 function post(p) {
   return new Promise((resolve) => {
-    const req = http.request(URL + p, { method: 'POST', timeout: 1500 }, (res) => { res.resume(); res.on('end', resolve); });
+    const req = http.request(URL + p, { method: 'POST', timeout: 1500, headers: { 'x-chatstorm-token': TOKEN } }, (res) => { res.resume(); res.on('end', resolve); });
     req.on('error', resolve); req.on('timeout', () => { req.destroy(); resolve(); });
     req.end();
   });
@@ -66,7 +79,7 @@ async function ensureServer() {
     } else return;
   }
   if (!fs.existsSync(path.join(PROJ, 'server', 'index.js'))) {
-    throw new Error(`Non trovo il progetto in ${PROJ}. Riesegui crea-app.command dalla cartella del progetto.`);
+    throw new Error(`Non trovo il progetto in ${PROJ}. Riesegui installa.command dalla cartella del progetto.`);
   }
   const node = findNode();
   if (!node) throw new Error('Node.js non trovato. Installalo da nodejs.org (versione 22 o più recente).');
@@ -108,6 +121,12 @@ app.whenReady().then(async () => {
   const icon = nativeImage.createFromPath(path.join(__dirname, 'icon.png'));
   if (process.platform === 'darwin' && !icon.isEmpty()) app.dock.setIcon(icon);
   try {
+    TOKEN = appToken();
+    // ogni richiesta della finestra (pagine, API, eventi, immagini) porta il token
+    session.defaultSession.webRequest.onBeforeSendHeaders({ urls: [URL + '/*'] }, (d, cb) => {
+      d.requestHeaders['x-chatstorm-token'] = TOKEN;
+      cb({ requestHeaders: d.requestHeaders });
+    });
     await ensureServer();
     createWindow();
   } catch (e) {
