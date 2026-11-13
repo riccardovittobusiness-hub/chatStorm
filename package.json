@@ -13,5 +13,7 @@
   },
   "dependencies": {
     "@openai/codex-sdk": "latest"
-  }
+  },
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "author": "Riccardo Vitto, Ci siamo (https://www.cisiamoagency.com)"
 }

@@ -131,3 +131,18 @@ public/            interfaccia (JavaScript puro, nessuna build)
 - Le chat esistenti su chatgpt.com non sono importabili: questa app ha un suo archivio.
 - I caratteri (Bricolage Grotesque, Fraunces) arrivano da Google Fonts; offline si usano quelli di sistema.
 - Nelle chat Codex lavora in sola lettura in una cartella vuota, con al massimo la ricerca web: niente file o comandi sul tuo computer.
+
+## Licenza
+chatStorm è distribuita con la **[PolyForm Noncommercial 1.0.0](LICENSE.md)**.
+- **Uso libero per scopi non commerciali:** uso personale, studio, hobby, sperimentazione, scuole, università,
+  enti di ricerca, no profit e pubblica amministrazione. Puoi modificarla e ridistribuirla alle stesse condizioni,
+  mantenendo la licenza e la riga `Required Notice` con il copyright.
+- **Uso commerciale escluso:** per usarla in un'attività a scopo di lucro, integrarla in un prodotto o in un servizio
+  a pagamento, serve una licenza commerciale. Scrivici tramite [cisiamoagency.com](https://www.cisiamoagency.com).
+- Il nome **chatStorm**, il logo con l'occhio e l'identità visiva di **Ci siamo** non sono coperti dalla licenza:
+  restano marchi di Ci siamo e non si possono usare per prodotti derivati.
+- La licenza riguarda il codice di chatStorm. Le dipendenze (Codex SDK di OpenAI, Electron e le altre) hanno le loro
+  licenze, e l'uso di ChatGPT resta soggetto ai termini di OpenAI.
+
+## Chi l'ha fatta
+chatStorm è un progetto di **[Ci siamo](https://www.cisiamoagency.com)**, a cura di Riccardo Vitto.
