@@ -1,8 +1,10 @@
-// Server locale dell'app chatStorm: API REST + streaming, file statici. Lo avvia l'app per Mac (mac/electron/main.js).
-// Risponde solo all'app: ogni richiesta deve portare il token di data/.app-token. In modalità simulata (--mock, per lo sviluppo) è aperto al browser.
+// Motore locale dell'app chatStorm: API, streaming, file dell'interfaccia. Lo avvia l'app per Mac (mac/electron/main.js)
+// su un socket locale (un file, non una porta di rete): nessun browser può raggiungerlo. Solo la modalità simulata
+// (npm run mock, per lo sviluppo) usa una porta e si apre nel browser.
 import { createServer } from 'node:http';
+import { unlinkSync, chmodSync, mkdirSync } from 'node:fs';
 import { readFile, stat } from 'node:fs/promises';
-import { join, extname, normalize } from 'node:path';
+import { join, extname, normalize, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as db from './db.js';
 import { streamChat, MOCK } from './model.js';
@@ -10,11 +12,14 @@ import { codexStatus, CODEX_MODELS } from './codex.js';
 import * as ai from './ai.js';
 import { generateImage } from './images.js';
 import * as desktop from './desktop-app.js';
-import { appToken, tokenMatches } from './app-token.js';
 
 const PORT = Number(process.env.PORT || 4317);
 const STARTED = Date.now();
-const TOKEN = MOCK ? null : appToken();   // in modalità simulata (sviluppo) l'interfaccia si apre anche nel browser
+const SOCKET = process.env.CHATSTORM_SOCKET || '';   // passato dall'app
+if (!SOCKET && !MOCK) {
+  console.error("\n  chatStorm si apre dall'app per Mac (installa.command la installa).\n  Per provare l'interfaccia nel browser con risposte simulate: npm run mock\n");
+  process.exit(1);
+}
 const PUBLIC = fileURLToPath(new URL('../public/', import.meta.url));
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
   '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.json': 'application/json' };
@@ -249,28 +254,19 @@ async function handleMessage(req, res, chatId) {
   if (!clientGone) res.end();
 }
 
-const ONLY_APP_PAGE = `<!DOCTYPE html><html lang="it"><meta charset="utf-8"><title>chatStorm</title>
-<body style="margin:0;height:100vh;display:grid;place-items:center;background:#F6F7FF;color:#1B1B39;font:16px/1.5 system-ui,sans-serif">
-<div style="max-width:420px;text-align:center;padding:24px"><h1 style="margin:0 0 8px;font-size:28px">chatStorm è un'app</h1>
-<p style="margin:0;color:#4A4A6A">Non si apre nel browser. Aprila dalla cartella Applicazioni, da Launchpad o con Spotlight.<br>
-Se non l'hai ancora installata, fai doppio clic su <b>installa.command</b> nella cartella del progetto.</p></div></body></html>`;
-
 // ---------- Server ----------
-createServer(async (req, res) => {
+const server = createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
   const path = decodeURIComponent(url.pathname);
-  // Protezione: solo pagine servite da questo server possono usare l'API (niente siti esterni né DNS rebinding)
-  const local = new RegExp(`^(localhost|127\\.0\\.0\\.1):${PORT}$`);
-  if (!local.test(req.headers.host || '')) return send(res, 403, { error: 'Host non consentito' });
-  if (path.startsWith('/api/') && req.method !== 'GET') {
-    const origin = req.headers.origin;
-    if (origin && !local.test(origin.replace(/^http:\/\//, ''))) return send(res, 403, { error: 'Origine non consentita' });
-  }
-  // Solo dall'app: un browser non ha il token e riceve una pagina che rimanda all'app
-  if (TOKEN && !tokenMatches(TOKEN, req.headers['x-chatstorm-token'])) {
-    if (path.startsWith('/api/')) return send(res, 403, { error: "chatStorm si usa dall'app per Mac" });
-    res.writeHead(403, { 'Content-Type': 'text/html; charset=utf-8' });
-    return res.end(ONLY_APP_PAGE);
+  // Modalità simulata su porta: solo pagine servite da questo server possono usare l'API (niente siti esterni né DNS rebinding).
+  // Sul socket dell'app non serve: lo raggiungono solo i programmi del tuo utente.
+  if (!SOCKET) {
+    const local = new RegExp(`^(localhost|127\\.0\\.0\\.1):${PORT}$`);
+    if (!local.test(req.headers.host || '')) return send(res, 403, { error: 'Host non consentito' });
+    if (path.startsWith('/api/') && req.method !== 'GET') {
+      const origin = req.headers.origin;
+      if (origin && !local.test(origin.replace(/^http:\/\//, ''))) return send(res, 403, { error: 'Origine non consentita' });
+    }
   }
   try {
     if (path === '/api/events') {
@@ -300,9 +296,17 @@ createServer(async (req, res) => {
     if (!res.headersSent) send(res, e.status || 500, { error: String(e.message || e) });
     else res.end();
   }
-}).listen(PORT, '127.0.0.1', () => {
-  console.log(`\n  chatStorm  →  porta ${PORT}${TOKEN ? ' (solo per l\'app)' : ` · apri http://localhost:${PORT}${MOCK ? ' (modalità simulata)' : ''}`}\n`);
+});
+if (SOCKET) {
+  try { unlinkSync(SOCKET); } catch {}               // socket rimasto da una chiusura brusca (l'app controlla prima che non sia in uso)
+  mkdirSync(dirname(SOCKET), { recursive: true });
+  server.listen(SOCKET, ready);
+} else server.listen(PORT, '127.0.0.1', ready);
+
+function ready() {
+  if (SOCKET) { try { chmodSync(SOCKET, 0o600); } catch {} }
+  console.log(SOCKET ? `\n  chatStorm  →  motore pronto per l'app\n` : `\n  chatStorm  →  http://localhost:${PORT}   (modalità simulata)\n`);
 
   // dall'app per Mac: se nome, icona o main.js sono cambiati, ricostruisce l'app da solo (dopo che la finestra si è caricata)
   if (!MOCK) setTimeout(() => desktop.maybeUpdateDesktopApp((st) => broadcast('app-update', { state: st })), 4000);
-});
+}

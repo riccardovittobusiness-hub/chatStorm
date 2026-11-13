@@ -66,9 +66,32 @@ export const api = {
     return done;
   },
 
+  /** Eventi in tempo reale dal motore (stream con fetch: funziona anche dentro l'app, senza porta). Si ricollega da solo. */
   events(onEvent) {
-    const es = new EventSource('/api/events');
-    es.onmessage = (e) => onEvent(JSON.parse(e.data));
-    return es;
+    let stopped = false;
+    (async () => {
+      while (!stopped) {
+        try {
+          const res = await fetch('/api/events', { cache: 'no-store' });
+          const reader = res.body.getReader(), dec = new TextDecoder();
+          let buf = '';
+          for (;;) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            buf += dec.decode(value, { stream: true });
+            let i;
+            while ((i = buf.indexOf('\n\n')) >= 0) {
+              const block = buf.slice(0, i); buf = buf.slice(i + 2);
+              for (const line of block.split('\n')) {
+                if (!line.startsWith('data: ')) continue;
+                try { onEvent(JSON.parse(line.slice(6))); } catch (e) { console.error(e); }
+              }
+            }
+          }
+        } catch {}
+        if (!stopped) await new Promise(r => setTimeout(r, 1500));
+      }
+    })();
+    return { close() { stopped = true; } };
   },
 };

@@ -1,15 +1,22 @@
-// chatStorm come app desktop: avvia il server locale, apre una finestra nativa, lo spegne all'uscita.
-// Il server risponde solo a chi ha il token di data/.app-token: questa app lo aggiunge a ogni richiesta, un browser no.
-const { app, BrowserWindow, shell, dialog, nativeImage, session } = require('electron');
+// chatStorm come app desktop: avvia il motore locale, apre una finestra nativa, lo spegne all'uscita.
+// Niente porte né localhost: il motore ascolta su un socket locale (un file leggibile solo dal tuo utente)
+// e la finestra carica chatstorm://app, che questa app gira al motore. Nessun browser può aprirla.
+const { app, BrowserWindow, shell, dialog, nativeImage, protocol } = require('electron');
 const { spawn, execFileSync } = require('child_process');
-const crypto = require('crypto');
+const { Readable } = require('stream');
 const path = require('path');
 const fs = require('fs');
 const http = require('http');
 
 app.setName('chatStorm');
 const HOME = app.getPath('home');
-const URL = 'http://localhost:4317';
+const SCHEME = 'chatstorm';
+const URL = `${SCHEME}://app`;
+// socket del motore: nella cartella dati dell'app (percorso corto, come richiede macOS)
+const SOCK = path.join(app.getPath('userData'), 'motore.sock');
+
+// chatstorm:// si comporta come un sito sicuro: fetch, stream, archiviazione locale
+protocol.registerSchemesAsPrivileged([{ scheme: SCHEME, privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true, corsEnabled: true } }]);
 
 // Cartella del progetto: scritta da installa.command in config.json
 let PROJ = path.join(HOME, 'claude-canvas');
@@ -17,23 +24,12 @@ try { PROJ = JSON.parse(fs.readFileSync(path.join(__dirname, 'config.json'), 'ut
 
 let server = null;
 let win = null;
-let TOKEN = '';
-
-/** Stessa regola di server/app-token.js: legge il token o ne crea uno nuovo. */
-function appToken() {
-  const dir = path.join(PROJ, 'data'), file = path.join(dir, '.app-token');
-  try { const t = fs.readFileSync(file, 'utf8').trim(); if (/^[0-9a-f]{64}$/.test(t)) return t; } catch {}
-  const t = crypto.randomBytes(32).toString('hex');
-  fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(file, t + '\n', { mode: 0o600 });
-  return t;
-}
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
 function status() {
   return new Promise((resolve) => {
-    const req = http.get(URL + '/api/status', { timeout: 800, headers: { 'x-chatstorm-token': TOKEN } }, (res) => {
+    const req = http.get({ socketPath: SOCK, path: '/api/status', timeout: 800 }, (res) => {
       let body = '';
       res.on('data', (c) => { body += c; });
       res.on('end', () => { try { resolve(JSON.parse(body)); } catch { resolve({}); } });
@@ -45,7 +41,7 @@ function status() {
 
 function post(p) {
   return new Promise((resolve) => {
-    const req = http.request(URL + p, { method: 'POST', timeout: 1500, headers: { 'x-chatstorm-token': TOKEN } }, (res) => { res.resume(); res.on('end', resolve); });
+    const req = http.request({ socketPath: SOCK, path: p, method: 'POST', timeout: 1500 }, (res) => { res.resume(); res.on('end', resolve); });
     req.on('error', resolve); req.on('timeout', () => { req.destroy(); resolve(); });
     req.end();
   });
@@ -83,7 +79,8 @@ async function ensureServer() {
   }
   const node = findNode();
   if (!node) throw new Error('Node.js non trovato. Installalo da nodejs.org (versione 22 o più recente).');
-  const env = { ...process.env };
+  try { fs.unlinkSync(SOCK); } catch {}                 // socket di una chiusura brusca: nessuno lo usa (status() era vuoto)
+  const env = { ...process.env, CHATSTORM_SOCKET: SOCK };
   delete env.OPENAI_API_KEY; delete env.CODEX_API_KEY;   // usa l'abbonamento ChatGPT, non una API key a consumo
   delete env.ELECTRON_RUN_AS_NODE;
   env.PATH = [path.dirname(node), path.join(HOME, '.local/bin'), '/opt/homebrew/bin', '/usr/local/bin', env.PATH].join(':');
@@ -97,6 +94,26 @@ async function ensureServer() {
     if (!server) break;
   }
   throw new Error('Il server non è partito. I dettagli sono in data/server.log nella cartella del progetto.');
+}
+
+const NO_BODY = new Set([101, 204, 205, 304]);
+/** Gira una richiesta della finestra (chatstorm://app/...) al motore sul socket, in streaming. */
+async function proxy(request) {
+  const u = new globalThis.URL(request.url);
+  const body = ['GET', 'HEAD'].includes(request.method) ? null : Buffer.from(await request.arrayBuffer());
+  const headers = Object.fromEntries(request.headers);
+  headers.host = 'chatstorm';
+  if (body) headers['content-length'] = String(body.length);
+  return new Promise((resolve) => {
+    const req = http.request({ socketPath: SOCK, path: u.pathname + u.search, method: request.method, headers }, (res) => {
+      const h = new Headers();
+      for (const [k, v] of Object.entries(res.headers)) h.set(k, Array.isArray(v) ? v.join(', ') : String(v));
+      if (NO_BODY.has(res.statusCode) || request.method === 'HEAD') { res.resume(); return resolve(new Response(null, { status: res.statusCode, headers: h })); }
+      resolve(new Response(Readable.toWeb(res), { status: res.statusCode, headers: h }));
+    });
+    req.on('error', () => resolve(new Response('Il motore di chatStorm non risponde. Chiudi e riapri l\'app.', { status: 502 })));
+    req.end(body || undefined);
+  });
 }
 
 function createWindow() {
@@ -121,12 +138,7 @@ app.whenReady().then(async () => {
   const icon = nativeImage.createFromPath(path.join(__dirname, 'icon.png'));
   if (process.platform === 'darwin' && !icon.isEmpty()) app.dock.setIcon(icon);
   try {
-    TOKEN = appToken();
-    // ogni richiesta della finestra (pagine, API, eventi, immagini) porta il token
-    session.defaultSession.webRequest.onBeforeSendHeaders({ urls: [URL + '/*'] }, (d, cb) => {
-      d.requestHeaders['x-chatstorm-token'] = TOKEN;
-      cb({ requestHeaders: d.requestHeaders });
-    });
+    protocol.handle(SCHEME, proxy);
     await ensureServer();
     createWindow();
   } catch (e) {

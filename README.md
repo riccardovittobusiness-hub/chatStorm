@@ -36,15 +36,17 @@ L'app gira sul tuo computer e usa **ChatGPT tramite Codex di OpenAI**, con il tu
 3. Apri **chatStorm** dall'icona che trovi sulla **Scrivania** (o da Applicazioni, Launchpad, Spotlight).
    Se vuoi, trascinala nel Dock.
 
-L'app ha una finestra sua: avvia il motore locale quando la apri e lo spegne quando la chiudi. Il motore risponde
-solo all'app, con un codice segreto salvato in `data/.app-token`: se apri l'indirizzo in un browser vedi solo un invito
-ad aprire l'app. I link esterni nelle chat si aprono nel browser.
+chatStorm è un'app vera e propria, con una finestra sua: non apre il browser e non usa porte né indirizzi `localhost`.
+Quando la apri avvia il suo motore locale, che comunica con la finestra attraverso un file privato del tuo utente
+(un socket in `~/Library/Application Support/chatStorm`), e lo spegne quando la chiudi. Solo i link esterni nelle chat
+si aprono nel browser.
 
 L'app **si aggiorna da sola**: dopo un aggiornamento del codice basta riaprirla. Se cambiano nome, icona o
 `mac/electron`, all'apertura si ricostruisce in background (`mac/aggiorna-app.sh`, log in `data/app-build.log`),
 si chiude e si riapre aggiornata.
 
-**Per chi sviluppa:** `npm run mock` apre l'interfaccia nel browser con risposte e icone simulate, senza ChatGPT.
+**Per chi sviluppa:** `npm run mock` apre l'interfaccia nel browser (http://localhost:4317) con risposte e icone simulate,
+senza ChatGPT. È l'unico modo in cui chatStorm si apre in un browser.
 
 
 ## ChatGPT (Codex)
@@ -113,13 +115,13 @@ Premi `?` nell'app per l'elenco delle scorciatoie.
 ## Struttura
 ```
 installa.command   installazione con doppio clic: dipendenze, login a ChatGPT, app in Applicazioni
-server/index.js    motore locale: API, streaming, accesso solo dall'app (server/app-token.js)
+server/index.js    motore locale: API e streaming su un socket privato dell'app (senza porte)
 server/model.js    ponte verso il modello (+ modalità simulata)
 server/codex.js    Codex SDK di OpenAI (ChatGPT)
 server/ai.js       riassunto → prompt icona, collegamenti, temi, sintesi, contesto dai collegati
 server/images.js   Pollinations / Cloudflare
 server/svg.js      pulizia degli SVG disegnati dal modello
-mac/electron/      app desktop (Electron): avvia il motore e gli passa il codice segreto
+mac/electron/      app desktop (Electron): avvia il motore e mostra chatstorm://app nella sua finestra
 mac/aggiorna-app.sh   ricostruisce l'app in background quando cambia (lo lancia il server)
 server/db.js       SQLite (node:sqlite)
 public/            interfaccia (JavaScript puro, nessuna build)
