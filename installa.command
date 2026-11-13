@@ -46,11 +46,25 @@ echo "\n3/3  Costruisco l'app (la prima volta scarica Electron, circa 100 MB)…
 ID=$(node --input-type=module -e "import('$PROJ/server/desktop-app.js').then(m => console.log(m.buildId()))")
 /bin/zsh "$PROJ/mac/aggiorna-app.sh" "$ID" || { pause "Non riuscito: i dettagli sono sopra. Premi un tasto per chiudere"; exit 1; }
 
-# icona sulla Scrivania: un collegamento all'app (macOS può chiedere il permesso di accedere alla Scrivania: rispondi OK)
-if [ ! -e "$HOME/Desktop/chatStorm.app" ] && [ ! -L "$HOME/Desktop/chatStorm.app" ]; then
-  ln -s "$HOME/Applications/chatStorm.app" "$HOME/Desktop/chatStorm.app" 2>/dev/null \
-    && echo "\nHo messo l'icona di chatStorm sulla Scrivania." \
-    || echo "\nNon ho potuto mettere l'icona sulla Scrivania: trascina chatStorm da Applicazioni dove preferisci."
+# icona sulla Scrivania: un alias del Finder (funziona anche con la Scrivania su iCloud).
+# macOS può chiedere il permesso al Terminale di controllare il Finder: rispondi OK.
+APPDIR="$HOME/Applications/chatStorm.app"
+DESK="$HOME/Desktop"
+if [ -L "$DESK/chatStorm.app" ]; then rm -f "$DESK/chatStorm.app"; fi     # collegamento delle versioni precedenti
+if [ ! -e "$DESK/chatStorm" ]; then
+  if osascript >/dev/null 2>&1 <<OSA
+tell application "Finder"
+  set a to make alias file to (POSIX file "$APPDIR" as alias) at (path to desktop folder)
+  try
+    set name of a to "chatStorm"
+  end try
+end tell
+OSA
+  then
+    echo "\nHo messo l'icona di chatStorm sulla Scrivania."
+  else
+    echo "\nNon ho potuto mettere l'icona sulla Scrivania: in Applicazioni trascina chatStorm sulla Scrivania tenendo premuti Cmd e Option."
+  fi
 fi
 
 echo "\nFatto. Apri chatStorm dall'icona sulla Scrivania (o da Applicazioni, Launchpad, Spotlight)."
