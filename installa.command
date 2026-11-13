@@ -46,6 +46,13 @@ echo "\n3/3  Costruisco l'app (la prima volta scarica Electron, circa 100 MB)…
 ID=$(node --input-type=module -e "import('$PROJ/server/desktop-app.js').then(m => console.log(m.buildId()))")
 /bin/zsh "$PROJ/mac/aggiorna-app.sh" "$ID" || { pause "Non riuscito: i dettagli sono sopra. Premi un tasto per chiudere"; exit 1; }
 
-echo "\nFatto. chatStorm è in Applicazioni (del tuo utente): la trovi in Launchpad e con Spotlight."
-echo "Trascinala nel Dock. Da ora in poi apri sempre l'app: si aggiorna da sola."
+# icona sulla Scrivania: un collegamento all'app (macOS può chiedere il permesso di accedere alla Scrivania: rispondi OK)
+if [ ! -e "$HOME/Desktop/chatStorm.app" ] && [ ! -L "$HOME/Desktop/chatStorm.app" ]; then
+  ln -s "$HOME/Applications/chatStorm.app" "$HOME/Desktop/chatStorm.app" 2>/dev/null \
+    && echo "\nHo messo l'icona di chatStorm sulla Scrivania." \
+    || echo "\nNon ho potuto mettere l'icona sulla Scrivania: trascina chatStorm da Applicazioni dove preferisci."
+fi
+
+echo "\nFatto. Apri chatStorm dall'icona sulla Scrivania (o da Applicazioni, Launchpad, Spotlight)."
+echo "Da ora in poi apri sempre l'app: si aggiorna da sola."
 exit 0

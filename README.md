@@ -33,7 +33,8 @@ L'app gira sul tuo computer e usa **ChatGPT tramite Codex di OpenAI**, con il tu
    quelle cartelle protette.
 2. Fai doppio clic su **`installa.command`**. Installa le dipendenze, apre il login al tuo account ChatGPT,
    costruisce **chatStorm.app** e la mette nella cartella Applicazioni del tuo utente. Si fa una volta sola.
-3. Apri **chatStorm** da Applicazioni, Launchpad o Spotlight, e trascinala nel Dock.
+3. Apri **chatStorm** dall'icona che trovi sulla **Scrivania** (o da Applicazioni, Launchpad, Spotlight).
+   Se vuoi, trascinala nel Dock.
 
 L'app ha una finestra sua: avvia il motore locale quando la apri e lo spegne quando la chiudi. Il motore risponde
 solo all'app, con un codice segreto salvato in `data/.app-token`: se apri l'indirizzo in un browser vedi solo un invito
@@ -136,8 +137,9 @@ chatStorm è distribuita con la **[PolyForm Noncommercial 1.0.0](LICENSE.md)**.
   mantenendo la licenza e la riga `Required Notice` con il copyright.
 - **Uso commerciale escluso:** per usarla in un'attività a scopo di lucro, integrarla in un prodotto o in un servizio
   a pagamento, serve una licenza commerciale. Scrivici tramite [cisiamoagency.com](https://www.cisiamoagency.com).
-- Il nome **chatStorm**, il logo con l'occhio e l'identità visiva di **Ci siamo** non sono coperti dalla licenza:
-  restano marchi di Ci siamo e non si possono usare per prodotti derivati.
+- La licenza copre il codice, non il nome **chatStorm**, il logo con l'occhio e l'identità visiva di **Ci siamo**:
+  per usarli in un progetto derivato serve il nostro permesso. Se ridistribuisci una versione modificata, dalle un nome
+  e un logo tuoi.
 - La licenza riguarda il codice di chatStorm. Le dipendenze (Codex SDK di OpenAI, Electron e le altre) hanno le loro
   licenze, e l'uso di ChatGPT resta soggetto ai termini di OpenAI.
 
