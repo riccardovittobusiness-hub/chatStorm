@@ -89,13 +89,26 @@ Con più chat selezionate: **#** le numera in ordine di selezione, **Aa** mette 
   chiede conferma e cancella anche i messaggi.
 - Le chat create con la prima versione che non stavano su nessuna mappa vengono raccolte nella mappa "Chat recuperate".
 
+## Copiare, scaricare e incollare le mappe
+Una mappa, o una sua parte, si può portare ovunque come **un unico JSON** che contiene elementi, frecce e le chat complete
+(titolo, riassunto, messaggi, icona).
+- **Copia**: seleziona qualcosa e premi **Ctrl/Cmd+C**, oppure menu **⇩ → Copia la mappa** per copiarla tutta.
+- **Incolla**: **Ctrl/Cmd+V** su qualsiasi lavagna, anche in un'altra mappa o su un altro computer. Le chat incollate sono copie
+  indipendenti: puoi continuarle, e il modello riceve come contesto quanto era stato detto.
+- **File**: menu **⇩ → Scarica la mappa** salva un file `.chatstorm.json`; **Importa da un file…** lo rimette su una lavagna.
+- **Come brief per un assistente AI**: il JSON si apre con un campo `about` che ne spiega la struttura. Incollato in una chat
+  con Claude, o salvato nella cartella di un progetto per Claude Code, fa da brief: idee, collegamenti, temi e conversazioni.
+- Le icone disegnate dall'AI e i badge viaggiano con la mappa; le icone generate come immagini no (la chat riparte dal badge).
+- Un file importato è trattato come dato non fidato: restano solo i campi conosciuti e gli SVG vengono ripuliti.
+
 ## Cosa c'è nell'MVP
 - **Lavagna**: zoom, spostamento della vista (Spazio + trascina, tasto centrale o strumento mano), minimappa, adatta alla vista, griglia con aggancio.
 - **Icone-chat**: trascinabili, **ridimensionabili** (maniglia in basso a destra, pulsanti −/＋, tasti `[` `]`, `=` per uguagliarle). Doppio clic apre la chat.
 - **Post-it, testi, riquadri** (spostando un riquadro si sposta anche il contenuto).
 - **Frecce**: si trascinano dai pallini laterali; etichetta, forma (curva/dritta/gomito), tratteggio, punte, colore, inversione.
 - **Allinea e distribuisci** (barra contestuale o Alt+A/D/W/S/H/V), **disposizioni automatiche**: griglia, albero (segue le frecce), grafo a forze.
-- **Annulla/ripeti**, salvataggio automatico, ricerca nelle chat della mappa, esporta PNG e JSON.
+- **Annulla/ripeti**, salvataggio automatico, ricerca nelle chat della mappa, esporta PNG.
+- **Mappe portatili**: copia, scarica e incolla una mappa intera o una selezione, con tutte le sue chat (vedi sotto).
 - **Strumenti AI** (menu ✦ AI):
   - *Suggerisci collegamenti*: frecce gialle tratteggiate con relazione e motivazione; accetti o scarti.
   - *Raggruppa per temi*: crea riquadri tematici e vi dispone gli elementi.
@@ -121,6 +134,7 @@ server/codex.js    Codex SDK di OpenAI (ChatGPT)
 server/ai.js       riassunto → prompt icona, collegamenti, temi, sintesi, contesto dai collegati
 server/images.js   Pollinations / Cloudflare
 server/svg.js      pulizia degli SVG disegnati dal modello
+server/portable.js mappe portatili: esporta e importa il JSON con elementi, frecce e chat
 mac/electron/      app desktop (Electron): avvia il motore e mostra chatstorm://app nella sua finestra
 mac/aggiorna-app.sh   ricostruisce l'app in background quando cambia (lo lancia il server)
 server/db.js       SQLite (node:sqlite)

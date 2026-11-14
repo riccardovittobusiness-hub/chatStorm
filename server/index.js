@@ -12,6 +12,7 @@ import { codexStatus, CODEX_MODELS } from './codex.js';
 import * as ai from './ai.js';
 import { generateImage } from './images.js';
 import * as desktop from './desktop-app.js';
+import * as portable from './portable.js';
 
 const PORT = Number(process.env.PORT || 4317);
 const STARTED = Date.now();
@@ -200,6 +201,10 @@ route('POST', '/api/chats/:id/icon', async ({ id, body }) => {
 });
 
 // Strumenti della mappa
+// Mappe portatili: esporta gli elementi che il client ha sulla lavagna (con le chat complete) e importa un documento JSON
+route('POST', '/api/export', ({ body }) => portable.exportMap(body, db.getSettings().uiLang));
+route('POST', '/api/import', ({ body }) => portable.importMap(body.data));
+
 route('POST', '/api/ai/suggest-links', async ({ body }) => ({ links: await ai.suggestLinks(body.boardId, db.getSettings()) }));
 route('POST', '/api/ai/clusters', async ({ body }) => ({ groups: await ai.clusterThemes(body.boardId, db.getSettings(), body.itemIds) }));
 route('POST', '/api/ai/synthesis', async ({ body }) => ({ markdown: await ai.synthesize(body.boardId, db.getSettings(), body.itemIds) }));

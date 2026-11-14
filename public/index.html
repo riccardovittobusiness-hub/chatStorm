@@ -90,13 +90,19 @@
           <button id="undo" title="Annulla (Ctrl+Z)">↶</button>
           <button id="redo" title="Ripeti (Ctrl+Shift+Z)">↷</button>
         </div>
-        <div class="dropdown right">
-          <button title="Esporta"><span class="ico">⇩</span></button>
+        <div class="dropdown right wide">
+          <button title="Esporta e importa"><span class="ico">⇩</span></button>
           <div class="menu">
+            <button id="map-copy" title="Copia tutta la mappa negli appunti, con le chat complete: si incolla in un'altra mappa o in una chat con Claude">Copia la mappa <small>JSON</small></button>
+            <button id="map-download" title="Salva tutta la mappa in un file, con le chat complete">Scarica la mappa <small>JSON</small></button>
+            <hr>
+            <button id="map-paste" title="Incolla qui una mappa o una selezione copiata">Incolla una mappa <small>Ctrl+V</small></button>
+            <button id="map-import">Importa da un file…</button>
+            <hr>
             <button id="export-png">Esporta PNG</button>
-            <button id="export-json">Esporta JSON</button>
           </div>
         </div>
+        <input type="file" id="map-file" accept=".json,application/json" hidden>
       </div>
 
       <div id="suggest-bar" hidden>
@@ -290,6 +296,7 @@
         <p><kbd>V</kbd> seleziona, <kbd>H</kbd> mano</p>
         <p><kbd>C</kbd> chat, <kbd>N</kbd> nota, <kbd>T</kbd> testo, <kbd>F</kbd> riquadro</p>
         <p><kbd>Canc</kbd> elimina, <kbd>Ctrl+D</kbd> duplica una nota</p>
+        <p><kbd>Ctrl+C</kbd> copia la selezione con le sue chat, <kbd>Ctrl+V</kbd> la incolla in qualsiasi mappa</p>
         <p><kbd>Ctrl+Z</kbd> annulla, <kbd>Ctrl+Shift+Z</kbd> ripeti</p>
       </div>
       <div><h3>Allinea e disponi</h3>

@@ -428,6 +428,33 @@ export class Board {
     this.pruneSelection();
     this.changed();
   }
+  /** Elementi e frecce da esportare: la selezione, oppure tutta la mappa. */
+  portable(onlySelection) {
+    const items = onlySelection ? this.selectedItems() : this.state.items;
+    const ids = new Set(items.map(i => i.id));
+    return { items, edges: this.state.edges.filter(e => ids.has(e.from) && ids.has(e.to)) };
+  }
+  /** Mette sulla lavagna elementi importati (con id già nuovi) e li seleziona: centrati in `at`, oppure a destra di quello che c'è già. */
+  insertPortable(items, edges, at) {
+    if (!items.length) return;
+    const bs = items.map(G.bounds);
+    const x0 = Math.min(...bs.map(b => b.x)), y0 = Math.min(...bs.map(b => b.y));
+    const x1 = Math.max(...bs.map(b => b.x + b.w)), y1 = Math.max(...bs.map(b => b.y + b.h));
+    if (!at) {
+      const ex = this.state.items.map(G.bounds);
+      at = ex.length
+        ? { x: Math.max(...ex.map(b => b.x + b.w)) + 140 + (x1 - x0) / 2, y: (Math.min(...ex.map(b => b.y)) + Math.max(...ex.map(b => b.y + b.h))) / 2 }
+        : { x: (x0 + x1) / 2, y: (y0 + y1) / 2 };
+    }
+    const dx = Math.round(at.x - (x0 + x1) / 2), dy = Math.round(at.y - (y0 + y1) / 2);
+    for (const it of items) { it.x += dx; it.y += dy; }
+    this.mutate(() => {
+      this.state.items.unshift(...items.filter(i => i.type === 'frame'));      // i riquadri stanno sotto
+      this.state.items.push(...items.filter(i => i.type !== 'frame'));
+      this.state.edges.push(...edges);
+    });
+    this.setSelection(items.map(i => i.id));
+  }
   duplicateSelection() {
     const items = this.selectedItems().filter(i => i.type === 'note' || i.type === 'text');
     if (!items.length) return;

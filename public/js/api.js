@@ -34,6 +34,9 @@ export const api = {
   summarize: (id) => req('POST', `/api/chats/${id}/summarize`),
   icon: (id, refreshPrompt, mode) => req('POST', `/api/chats/${id}/icon`, { refreshPrompt, mode }),
 
+  exportMap: (doc) => req('POST', '/api/export', doc),
+  importMap: (data) => req('POST', '/api/import', { data }),
+
   suggestLinks: (boardId) => req('POST', '/api/ai/suggest-links', { boardId }),
   clusters: (boardId, itemIds) => req('POST', '/api/ai/clusters', { boardId, itemIds }),
   synthesis: (boardId, itemIds) => req('POST', '/api/ai/synthesis', { boardId, itemIds }),

@@ -135,6 +135,8 @@ body.chat-open #toolbar .lbl { display: none; }
 .dropdown .menu { display: none; position: absolute; top: calc(100% + 8px); left: 0; z-index: 20; min-width: 260px; padding: 6px;
   background: #fff; border: 1px solid var(--line); border-radius: var(--r-pannello); box-shadow: var(--ombra); }
 .dropdown.right .menu { left: auto; right: 0; min-width: 170px; }
+.dropdown.right.wide .menu { min-width: 250px; }
+.dropdown .menu button small { color: var(--muted); font-size: 11.5px; margin-left: 14px; }
 .dropdown.open .menu { display: flex; flex-direction: column; gap: 1px; }
 .dropdown .menu button { justify-content: space-between; width: 100%; text-align: left; border-radius: 12px; }
 .dropdown .menu hr { border: none; border-top: 1px solid var(--line); margin: 5px 0; width: 100%; }

@@ -89,6 +89,8 @@ export function getSettings() {
 const L = {
   'Nuova chat': 'New chat', 'La mia prima mappa': 'My first map', 'Chat recuperate': 'Recovered chats',
   'Sintesi di idee': 'Merged ideas', 'Nuova mappa': 'New map',
+  'Questo non è un file di chatStorm': 'This is not a chatStorm file', 'Il file non contiene elementi': 'The file has no elements',
+  'File creato con una versione più recente di chatStorm: aggiorna l\'app': 'File made with a newer version of chatStorm: update the app',
 };
 export const tr = (s) => (getSettings().uiLang === 'en' && L[s]) || s;
 

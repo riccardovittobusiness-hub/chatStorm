@@ -541,13 +541,40 @@ function wire() {
     try { download(await board.exportPNG(), fileName('png')); }
     catch (e) { toast(e.message, { error: true }); }
   };
-  $('export-json').onclick = () => {
+  // mappe portatili: copia, scarica, incolla, importa
+  $('map-copy').onclick = () => { closeMenus(); copyMap(false); };
+  $('map-download').onclick = async () => {
     closeMenus();
-    const used = new Set(board.state.items.filter(i => i.chatId).map(i => i.chatId));
-    const data = { name: currentBoard()?.name, exported_at: new Date().toISOString(), state: board.state,
-      chats: [...chats.values()].filter(c => used.has(c.id)).map(({ id, title, summary, keywords }) => ({ id, title, summary, keywords })) };
-    download(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }), fileName('json'));
+    try {
+      const doc = await buildPortable(false);
+      if (doc) download(new Blob([JSON.stringify(doc, null, 2)], { type: 'application/json' }), fileName('chatstorm.json'));
+    } catch (e) { toast(e.message, { error: true }); }
   };
+  $('map-paste').onclick = async () => {
+    closeMenus();
+    let text = '';
+    try { text = await navigator.clipboard.readText(); } catch { toast(t('Premi Ctrl+V sulla lavagna per incollare'), { ms: 5000 }); return; }
+    pasteMap(text);
+  };
+  $('map-import').onclick = () => { closeMenus(); $('map-file').click(); };
+  $('map-file').onchange = async (e) => {
+    const file = e.target.files[0]; e.target.value = '';
+    if (file) pasteMap(await file.text());
+  };
+  board.canvas.addEventListener('pointermove', (e) => { lastPointer = { x: e.clientX, y: e.clientY }; });
+  board.canvas.addEventListener('pointerleave', () => { lastPointer = null; });
+  const busyElsewhere = (e) => e.target.closest?.('input, textarea, [contenteditable="true"]') || document.querySelector('dialog[open]') || overview.isOpen;
+  document.addEventListener('paste', (e) => {
+    if (busyElsewhere(e)) return;
+    const text = e.clipboardData?.getData('text/plain') || '';
+    if (!looksPortable(text)) return;
+    e.preventDefault();
+    pasteMap(text, { at: lastPointer && board.toWorld(lastPointer.x, lastPointer.y) });
+  });
+  document.addEventListener('copy', (e) => {           // se la scorciatoia arriva dal menu Modifica dell'app
+    if (busyElsewhere(e) || !board.sel.size || String(getSelection()).trim()) return;
+    e.preventDefault(); copyMap(true);
+  });
 
   document.querySelectorAll('.dropdown > button:not(#add-chat)').forEach(b => {
     b.onclick = (e) => { e.stopPropagation(); const d = b.parentNode; const open = d.classList.contains('open'); closeMenus(); d.classList.toggle('open', !open); };
@@ -585,6 +612,9 @@ function wire() {
       return;
     }
     if (typing || turning) return;
+    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'c' && board.sel.size && !String(getSelection()).trim()) {
+      e.preventDefault(); copyMap(true); return;
+    }
     if (e.key === ' ' && !board.space) { board.space = true; board.canvas.classList.add('space'); e.preventDefault(); return; }
     if (board.onKey(e)) { e.preventDefault(); return; }
     if (e.ctrlKey || e.metaKey || e.altKey) return;
@@ -602,6 +632,52 @@ function wire() {
   });
   window.addEventListener('keyup', (e) => { if (e.key === ' ') { board.space = false; board.canvas.classList.remove('space'); } });
 }
+// ---------- Mappe portatili: tutta la mappa (o la selezione) in un JSON che si copia e si incolla ----------
+let lastPointer = null, lastCopy = 0;
+const looksPortable = (text) => typeof text === 'string' && /^\s*\{/.test(text) && text.includes('"chatstorm"');
+/** Chiede al motore il documento completo (elementi, frecce e chat con i messaggi). */
+async function buildPortable(onlySelection) {
+  const { items, edges } = board.portable(onlySelection);
+  if (!items.length) { toast(t('La mappa è vuota: non c\'è niente da copiare'), { error: true }); return null; }
+  return api.exportMap({ name: currentBoard()?.name, items, edges });
+}
+async function writeClipboard(text) {
+  try { await navigator.clipboard.writeText(text); return true; } catch {}
+  const ta = document.createElement('textarea');
+  ta.value = text; ta.style.cssText = 'position:fixed;left:-9999px;opacity:0';
+  document.body.appendChild(ta); ta.select();
+  let ok = false; try { ok = document.execCommand('copy'); } catch {}
+  ta.remove();
+  return ok;
+}
+async function copyMap(onlySelection) {
+  if (Date.now() - lastCopy < 400) return;
+  lastCopy = Date.now();
+  try {
+    const doc = await buildPortable(onlySelection);
+    if (!doc) return;
+    if (!(await writeClipboard(JSON.stringify(doc, null, 2)))) throw new Error(t('Non riesco a scrivere negli appunti: usa "Scarica la mappa"'));
+    toast(onlySelection
+      ? tn(doc.items.length, '1 elemento copiato. Incollalo in una mappa con Ctrl+V.', '{n} elementi copiati. Incollali in una mappa con Ctrl+V.')
+      : t('Mappa copiata. Incollala in un\'altra mappa con Ctrl+V, o in una chat con Claude.'), { ms: 5000 });
+  } catch (e) { toast(e.message, { error: true }); }
+}
+/** Importa un documento JSON: crea le chat e mette gli elementi sulla lavagna, in `at` oppure accanto a quello che c'è già. */
+async function pasteMap(text, { at = null } = {}) {
+  let data = null;
+  try { data = JSON.parse(text); } catch {}
+  if (!data?.chatstorm) { toast(t('Qui non c\'è una mappa di chatStorm da incollare'), { error: true }); return; }
+  if (turning) return;
+  const r = await withSpinner(t('Importo la mappa…'), () => api.importMap(data));
+  if (!r) return;
+  for (const c of r.chats) chats.set(c.id, c);
+  const wasEmpty = !board.state.items.length;
+  board.insertPortable(r.items, r.edges, at);
+  if (wasEmpty) board.fit(); else if (!at) board.fit(true, r.items);
+  renderChatList(); updateEmptyHint(); renderBoardList();
+  toast(tn(r.items.length, '1 elemento incollato', '{n} elementi incollati'));
+}
+
 function closeMenus() { document.querySelectorAll('.dropdown.open').forEach(d => d.classList.remove('open')); }
 function setWheelMode(m) {
   board.wheelMode = m; localStorage.setItem('cc:wheel', m);
