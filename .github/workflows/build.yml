@@ -1,6 +1,7 @@
 # Costruisce chatStorm per Mac (Apple Silicon e Intel), ognuno su un Mac del suo tipo, e prova che l'app parta.
 # - a mano (Run workflow) o con un push sul ramo prova-build: i .dmg restano tra gli "artifact" della prova
 # - con un tag v1.2.3: i .dmg vengono pubblicati come Release, da dove li scarica il pulsante sul sito
+# - con un tag v1.2.3-prova1: come sopra, ma segnata come pre-release (non diventa "l'ultima versione")
 name: App per Mac
 
 on:
@@ -31,7 +32,7 @@ jobs:
           node-version: 22
       - name: La versione del tag coincide con package.json
         if: startsWith(github.ref, 'refs/tags/v')
-        run: test "v$(node -p "require('./package.json').version")" = "$GITHUB_REF_NAME"
+        run: test "v$(node -p "require('./package.json').version")" = "${GITHUB_REF_NAME%%-*}"
       - name: Dipendenze
         run: npm install --no-audit --no-fund
       - name: Costruisce l'app
@@ -61,4 +62,13 @@ jobs:
       - name: Pubblica
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" dist/chatStorm-arm64.dmg dist/chatStorm-x64.dmg --title "chatStorm ${GITHUB_REF_NAME#v}" --notes-file mac/NOTE-RILASCIO.md
+        run: |
+          # un tag come v1.2.3-prova1 diventa una "pre-release": si scarica, ma non è la versione ufficiale
+          if [[ "$GITHUB_REF_NAME" == *-* ]]; then
+            gh release create "$GITHUB_REF_NAME" dist/chatStorm-arm64.dmg dist/chatStorm-x64.dmg --prerelease \
+              --title "chatStorm ${GITHUB_REF_NAME#v} (versione di prova)" \
+              --notes "Versione di prova, non ancora ufficiale. Serve a verificare il download e l'installazione."
+          else
+            gh release create "$GITHUB_REF_NAME" dist/chatStorm-arm64.dmg dist/chatStorm-x64.dmg \
+              --title "chatStorm ${GITHUB_REF_NAME#v}" --notes-file mac/NOTE-RILASCIO.md
+          fi
