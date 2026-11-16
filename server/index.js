@@ -103,7 +103,7 @@ const route = (method, pattern, handler) => {
 };
 
 const VERSION = process.env.CHATSTORM_VERSION || '';           // la passa l'app; vuota in sviluppo
-route('GET', '/api/status', () => ({ mock: MOCK, started: STARTED, version: VERSION, settings: maskSettings(db.getSettings()) }));
+route('GET', '/api/status', () => ({ mock: MOCK, started: STARTED, version: VERSION, windows: clients.size, settings: maskSettings(db.getSettings()) }));
 route('GET', '/api/update', () => (MOCK ? { current: VERSION, latest: null } : checkUpdate(VERSION)));
 route('GET', '/api/licenses', () => {
   const read = (f) => { try { return readFileSync(new URL(`../${f}`, import.meta.url), 'utf8'); } catch { return ''; } };

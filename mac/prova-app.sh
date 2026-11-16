@@ -39,8 +39,13 @@ USER_DIR="$HOME/Library/Application Support/chatStorm"; SOCK="$USER_DIR/motore.s
 "$BIN" > "$LOG" 2>&1 &
 PID=$!
 wait_sock "$SOCK" || fail "l'app non ha acceso il motore"
-sleep 3
 check "$SOCK"
+# la finestra ha caricato l'interfaccia ed è collegata al motore?
+for i in $(seq 1 60); do
+  curl -sf --max-time 5 --unix-socket "$SOCK" http://chatstorm/api/status | grep -q '"windows":[1-9]' && WIN=1 && break; sleep 1
+done
+[ "${WIN:-}" = 1 ] || fail "la finestra non si è collegata al motore"
+echo "finestra collegata"
 kill -0 $PID 2>/dev/null || fail "l'app si è chiusa da sola"
 LOG="$USER_DIR/data/server.log"; [ -f "$LOG" ] || fail "manca il registro del motore"
 kill $PID 2>/dev/null; sleep 2
