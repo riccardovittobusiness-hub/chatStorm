@@ -63,12 +63,14 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # un tag come v1.2.3-prova1 diventa una "pre-release": si scarica, ma non è la versione ufficiale
-          if [[ "$GITHUB_REF_NAME" == *-* ]]; then
-            gh release create "$GITHUB_REF_NAME" dist/chatStorm-arm64.dmg dist/chatStorm-x64.dmg --prerelease \
-              --title "chatStorm ${GITHUB_REF_NAME#v} (versione di prova)" \
+          TAG="$GITHUB_REF_NAME"; FILES="dist/chatStorm-arm64.dmg dist/chatStorm-x64.dmg"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            # Release già creata a mano dalla pagina di GitHub: ci aggiungo i file
+            gh release upload "$TAG" $FILES --clobber
+          elif [[ "$TAG" == *-* ]]; then
+            # un tag come v1.2.3-prova1 diventa una "pre-release": si scarica, ma non è la versione ufficiale
+            gh release create "$TAG" $FILES --prerelease --title "chatStorm ${TAG#v} (versione di prova)" \
               --notes "Versione di prova, non ancora ufficiale. Serve a verificare il download e l'installazione."
           else
-            gh release create "$GITHUB_REF_NAME" dist/chatStorm-arm64.dmg dist/chatStorm-x64.dmg \
-              --title "chatStorm ${GITHUB_REF_NAME#v}" --notes-file mac/NOTE-RILASCIO.md
+            gh release create "$TAG" $FILES --title "chatStorm ${TAG#v}" --notes-file mac/NOTE-RILASCIO.md
           fi
