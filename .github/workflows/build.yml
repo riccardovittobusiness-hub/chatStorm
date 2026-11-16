@@ -1,4 +1,4 @@
-# Costruisce chatStorm per Mac (Apple Silicon e Intel) e prova che l'app parta.
+# Costruisce chatStorm per Mac (Apple Silicon e Intel), ognuno su un Mac del suo tipo, e prova che l'app parta.
 # - a mano (Run workflow) o con un push sul ramo prova-build: i .dmg restano tra gli "artifact" della prova
 # - con un tag v1.2.3: i .dmg vengono pubblicati come Release, da dove li scarica il pulsante sul sito
 name: App per Mac
@@ -9,41 +9,56 @@ on:
     branches: [prova-build]
     tags: ['v*']
 
-permissions:
-  contents: write
-
 jobs:
   dmg:
-    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: arm64
+            os: macos-latest
+          - arch: x64
+            os: macos-15-intel
+    name: dmg ${{ matrix.arch }}
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 45
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
         with:
           node-version: 22
-      - name: Dipendenze
-        run: npm install --no-audit --no-fund
       - name: La versione del tag coincide con package.json
         if: startsWith(github.ref, 'refs/tags/v')
         run: test "v$(node -p "require('./package.json').version")" = "$GITHUB_REF_NAME"
-      - name: App per Apple Silicon
-        run: bash mac/build-dmg.sh arm64
-      - name: Prova di avvio (Apple Silicon)
-        run: bash mac/prova-app.sh dist/chatStorm-darwin-arm64/chatStorm.app
-      - name: App per Intel
-        run: bash mac/build-dmg.sh x64
-      - name: Prova del motore (Intel, con Rosetta)
-        continue-on-error: true
-        run: |
-          softwareupdate --install-rosetta --agree-to-license || true
-          bash mac/prova-app.sh dist/chatStorm-darwin-x64/chatStorm.app solo-motore
+      - name: Dipendenze
+        run: npm install --no-audit --no-fund
+      - name: Costruisce l'app
+        run: bash mac/build-dmg.sh ${{ matrix.arch }}
+      - name: Prova di avvio
+        run: bash mac/prova-app.sh dist/chatStorm-darwin-${{ matrix.arch }}/chatStorm.app
       - uses: actions/upload-artifact@v4
         with:
-          name: chatStorm-dmg
-          path: dist/*.dmg
+          name: chatStorm-${{ matrix.arch }}
+          path: dist/chatStorm-${{ matrix.arch }}.dmg
           retention-days: 14
-      - name: Pubblica la Release
-        if: startsWith(github.ref, 'refs/tags/v')
+          compression-level: 0
+
+  release:
+    name: Pubblica la Release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: dmg
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Pubblica
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh release create "$GITHUB_REF_NAME" dist/chatStorm-arm64.dmg dist/chatStorm-x64.dmg --title "chatStorm ${GITHUB_REF_NAME#v}" --notes-file mac/NOTE-RILASCIO.md

@@ -6,7 +6,7 @@ set -uo pipefail
 APP="$1"; ONLY="${2:-}"
 BIN="$APP/Contents/MacOS/chatStorm"; RES="$APP/Contents/Resources/app"
 fail() { echo "ERRORE: $1"; [ -f "${LOG:-}" ] && { echo "--- log ---"; tail -40 "$LOG"; }; exit 1; }
-wait_sock() { for i in $(seq 1 80); do [ -S "$1" ] && return 0; sleep 0.5; done; return 1; }
+wait_sock() { for i in $(seq 1 240); do [ -S "$1" ] && return 0; sleep 0.5; done; return 1; }
 check() {                       # $1 = socket
   ST=$(curl -sf --max-time 5 --unix-socket "$1" http://chatstorm/api/status) || fail "il motore non risponde"
   echo "stato: $(echo "$ST" | head -c 160)"
