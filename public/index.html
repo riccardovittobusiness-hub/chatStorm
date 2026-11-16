@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="/css/app.css">
 </head>
 <body>
-  <div id="mock-banner" hidden>Modalità simulata: le risposte sono finte. Per usare ChatGPT davvero installa l'app con <code>installa.command</code>.</div>
+  <div id="mock-banner" hidden>Modalità simulata: le risposte sono finte. Per usare ChatGPT davvero apri l'app chatStorm.</div>
 
   <div id="app">
     <!-- Barra laterale -->
@@ -41,6 +41,7 @@
         <ul id="chat-list"></ul>
       </section>
 
+      <a id="update-pill" target="_blank" rel="noopener" hidden></a>
       <footer>
         <button class="ghost" id="btn-settings">Impostazioni</button>
         <button class="ghost" id="btn-help">Scorciatoie</button>
@@ -267,6 +268,7 @@
           <select name="codexModel" data-model="codex"></select>
           <input class="custom-model" hidden placeholder="Scrivi il nome del modello"></label>
         <p class="status" id="codex-status"></p>
+        <div class="row"><button type="button" id="login-open" hidden>Accedi con ChatGPT</button></div>
       </fieldset>
       <fieldset>
         <legend>Generale</legend>
@@ -280,6 +282,23 @@
         <button value="save" class="primary" id="settings-save">Salva</button>
       </div>
     </form>
+  </dialog>
+
+  <dialog id="welcome-dialog">
+    <h2>Collega il tuo ChatGPT</h2>
+    <p>chatStorm risponde nelle chat usando il tuo abbonamento ChatGPT (Plus o Pro). L'accesso si fa una volta sola, nel browser, e resta su questo computer.</p>
+    <p class="status" id="login-status" hidden></p>
+    <p id="login-link" hidden>Se il browser non si è aperto, <a target="_blank" rel="noopener">apri tu la pagina di accesso</a>.</p>
+    <div class="dialog-actions">
+      <button type="button" id="login-later">Più tardi</button>
+      <button type="button" id="login-start" class="primary">Accedi con ChatGPT</button>
+    </div>
+  </dialog>
+
+  <dialog id="licenses-dialog">
+    <h2>Licenze</h2>
+    <pre id="licenses-text"></pre>
+    <form method="dialog" class="dialog-actions"><button>Chiudi</button></form>
   </dialog>
 
   <dialog id="help-dialog">
@@ -312,7 +331,7 @@
         <p><kbd>L</kbd> collega gli elementi selezionati in ordine</p>
       </div>
     </div>
-    <form method="dialog"><button class="primary">Chiudi</button></form>
+    <form method="dialog"><span class="about"><span id="app-version">chatStorm</span>, un progetto di <a href="https://www.cisiamoagency.com" target="_blank" rel="noopener">Ci siamo</a>. <button type="button" class="link" id="show-licenses">Licenze</button></span><button class="primary">Chiudi</button></form>
   </dialog>
 
   <script type="module" src="/js/app.js"></script>

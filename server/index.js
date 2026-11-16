@@ -2,23 +2,23 @@
 // su un socket locale (un file, non una porta di rete): nessun browser può raggiungerlo. Solo la modalità simulata
 // (npm run mock, per lo sviluppo) usa una porta e si apre nel browser.
 import { createServer } from 'node:http';
-import { unlinkSync, chmodSync, mkdirSync } from 'node:fs';
+import { unlinkSync, chmodSync, mkdirSync, readFileSync } from 'node:fs';
 import { readFile, stat } from 'node:fs/promises';
 import { join, extname, normalize, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as db from './db.js';
 import { streamChat, MOCK } from './model.js';
-import { codexStatus, CODEX_MODELS } from './codex.js';
+import { codexStatus, codexLoginState, codexLoginStart, codexLoginCancel, CODEX_MODELS } from './codex.js';
+import { checkUpdate } from './update.js';
 import * as ai from './ai.js';
 import { generateImage } from './images.js';
-import * as desktop from './desktop-app.js';
 import * as portable from './portable.js';
 
 const PORT = Number(process.env.PORT || 4317);
 const STARTED = Date.now();
 const SOCKET = process.env.CHATSTORM_SOCKET || '';   // passato dall'app
 if (!SOCKET && !MOCK) {
-  console.error("\n  chatStorm si apre dall'app per Mac (installa.command la installa).\n  Per provare l'interfaccia nel browser con risposte simulate: npm run mock\n");
+  console.error("\n  Il motore di chatStorm parte dall'app: npm run app.\n  Per provare l'interfaccia nel browser con risposte simulate: npm run mock\n");
   process.exit(1);
 }
 const PUBLIC = fileURLToPath(new URL('../public/', import.meta.url));
@@ -102,8 +102,14 @@ const route = (method, pattern, handler) => {
   routes.push({ method, re, keys, handler });
 };
 
-route('GET', '/api/status', () => ({ mock: MOCK, started: STARTED, appUpdate: desktop.appUpdate, settings: maskSettings(db.getSettings()) }));
-// Usato dall'app per Mac per riavviare il server dopo un aggiornamento (solo da questo computer)
+const VERSION = process.env.CHATSTORM_VERSION || '';           // la passa l'app; vuota in sviluppo
+route('GET', '/api/status', () => ({ mock: MOCK, started: STARTED, version: VERSION, settings: maskSettings(db.getSettings()) }));
+route('GET', '/api/update', () => (MOCK ? { current: VERSION, latest: null } : checkUpdate(VERSION)));
+route('GET', '/api/licenses', () => {
+  const read = (f) => { try { return readFileSync(new URL(`../${f}`, import.meta.url), 'utf8'); } catch { return ''; } };
+  return { license: read('LICENSE.md'), thirdParty: read('LICENZE-TERZE-PARTI.txt') };
+});
+// Usato dall'app per Mac per spegnere un motore rimasto acceso da una chiusura brusca
 route('POST', '/api/shutdown', () => { setTimeout(() => process.exit(0), 150); return { ok: true }; });
 
 // Impostazioni
@@ -115,6 +121,10 @@ function maskSettings(s) {
 }
 route('GET', '/api/settings', () => maskSettings(db.getSettings()));
 route('GET', '/api/providers', () => ({ codex: codexStatus() }));
+// Accesso con ChatGPT dall'app: avvia, controlla e annulla "codex login"
+route('GET', '/api/codex/login', () => codexLoginState());
+route('POST', '/api/codex/login', () => codexLoginStart());
+route('DELETE', '/api/codex/login', () => codexLoginCancel());
 route('GET', '/api/models', () => ({ codex: CODEX_MODELS }));
 route('PUT', '/api/settings', async ({ body }) => {
   for (const k of SECRET) if (typeof body[k] === 'string' && body[k].startsWith('••••')) delete body[k];
@@ -311,7 +321,4 @@ if (SOCKET) {
 function ready() {
   if (SOCKET) { try { chmodSync(SOCKET, 0o600); } catch {} }
   console.log(SOCKET ? `\n  chatStorm  →  motore pronto per l'app\n` : `\n  chatStorm  →  http://localhost:${PORT}   (modalità simulata)\n`);
-
-  // dall'app per Mac: se nome, icona o main.js sono cambiati, ricostruisce l'app da solo (dopo che la finestra si è caricata)
-  if (!MOCK) setTimeout(() => desktop.maybeUpdateDesktopApp((st) => broadcast('app-update', { state: st })), 4000);
 }

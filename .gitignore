@@ -1,5 +1,3 @@
 node_modules/
 data/
-mac/electron/node_modules/
-mac/electron/config.json
-mac/dist/
+dist/

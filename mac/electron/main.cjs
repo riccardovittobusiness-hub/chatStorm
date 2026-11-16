@@ -1,8 +1,10 @@
-// chatStorm come app desktop: avvia il motore locale, apre una finestra nativa, lo spegne all'uscita.
-// Niente porte né localhost: il motore ascolta su un socket locale (un file leggibile solo dal tuo utente)
-// e la finestra carica chatstorm://app, che questa app gira al motore. Nessun browser può aprirla.
+// chatStorm come app desktop, autonoma: dentro l'app ci sono l'interfaccia, il motore e Codex.
+// All'avvio fa partire il motore con il Node di Electron (non serve installare Node), apre una finestra nativa
+// e lo spegne all'uscita. Niente porte né localhost: il motore ascolta su un socket locale (un file leggibile
+// solo dal tuo utente) e la finestra carica chatstorm://app, che questa app gira al motore.
+// Mappe e chat stanno in ~/Library/Application Support/chatStorm/data.
 const { app, BrowserWindow, shell, dialog, nativeImage, protocol } = require('electron');
-const { spawn, execFileSync } = require('child_process');
+const { spawn } = require('child_process');
 const { Readable } = require('stream');
 const path = require('path');
 const fs = require('fs');
@@ -10,17 +12,16 @@ const http = require('http');
 
 app.setName('chatStorm');
 const HOME = app.getPath('home');
+const APP_ROOT = app.getAppPath();                        // nell'app: Contents/Resources/app; in sviluppo: la cartella del progetto
+const USER_DIR = app.getPath('userData');                 // ~/Library/Application Support/chatStorm
+const DATA = path.join(USER_DIR, 'data');
 const SCHEME = 'chatstorm';
 const URL = `${SCHEME}://app`;
 // socket del motore: nella cartella dati dell'app (percorso corto, come richiede macOS)
-const SOCK = path.join(app.getPath('userData'), 'motore.sock');
+const SOCK = path.join(USER_DIR, 'motore.sock');
 
 // chatstorm:// si comporta come un sito sicuro: fetch, stream, archiviazione locale
 protocol.registerSchemesAsPrivileged([{ scheme: SCHEME, privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true, corsEnabled: true } }]);
-
-// Cartella del progetto: scritta da installa.command in config.json
-let PROJ = path.join(HOME, 'claude-canvas');
-try { PROJ = JSON.parse(fs.readFileSync(path.join(__dirname, 'config.json'), 'utf8')).project || PROJ; } catch {}
 
 let server = null;
 let win = null;
@@ -47,53 +48,42 @@ function post(p) {
   });
 }
 
-/** Trova Node come lo trova il Terminale (le app avviate dal Finder hanno un PATH minimo). */
-function findNode() {
+/** Chi aveva installato chatStorm dalla cartella del progetto (~/chatStorm) ritrova mappe e chat: le copio una volta. */
+function adoptOldData() {
+  if (fs.existsSync(path.join(DATA, 'canvas.db'))) return;
+  const old = path.join(HOME, 'chatStorm', 'data');
+  if (!fs.existsSync(path.join(old, 'canvas.db'))) return;
   try {
-    const out = execFileSync('/bin/zsh', ['-lic', 'command -v node'], { encoding: 'utf8', timeout: 10000, stdio: ['ignore', 'pipe', 'ignore'] });
-    const line = out.split('\n').map(s => s.trim()).filter(s => s.startsWith('/')).pop();
-    if (line && fs.existsSync(line)) return line;
-  } catch {}
-  for (const p of ['/opt/homebrew/bin/node', '/usr/local/bin/node', path.join(HOME, '.volta/bin/node')]) if (fs.existsSync(p)) return p;
-  return null;
-}
-
-function newestServerFile() {
-  try {
-    const dir = path.join(PROJ, 'server');
-    return Math.max(...fs.readdirSync(dir).filter(f => f.endsWith('.js')).map(f => fs.statSync(path.join(dir, f)).mtimeMs));
-  } catch { return 0; }
+    fs.cpSync(old, DATA, { recursive: true, filter: (src) => !/(\.log|\.sock|app-build[^/]*)$/.test(src) });
+  } catch (e) { console.error('[dati] copia dei vecchi dati non riuscita:', e.message); }
 }
 
 async function ensureServer() {
-  const st = await status();
-  if (st) {
-    // già acceso: se il codice è più recente del server (aggiornamento), lo riavvio
-    if (!st.started || newestServerFile() > st.started) {
-      await post('/api/shutdown');
-      for (let i = 0; i < 20 && await status(); i++) await sleep(250);
-    } else return;
+  if (await status()) {                                  // motore rimasto acceso da una chiusura brusca: lo spengo
+    await post('/api/shutdown');
+    for (let i = 0; i < 20 && await status(); i++) await sleep(250);
   }
-  if (!fs.existsSync(path.join(PROJ, 'server', 'index.js'))) {
-    throw new Error(`Non trovo il progetto in ${PROJ}. Riesegui installa.command dalla cartella del progetto.`);
-  }
-  const node = findNode();
-  if (!node) throw new Error('Node.js non trovato. Installalo da nodejs.org (versione 22 o più recente).');
-  try { fs.unlinkSync(SOCK); } catch {}                 // socket di una chiusura brusca: nessuno lo usa (status() era vuoto)
-  const env = { ...process.env, CHATSTORM_SOCKET: SOCK };
+  const entry = path.join(APP_ROOT, 'server', 'index.js');
+  if (!fs.existsSync(entry)) throw new Error("L'app è incompleta: scarica di nuovo chatStorm.");
+  fs.mkdirSync(DATA, { recursive: true });
+  adoptOldData();
+  try { fs.unlinkSync(SOCK); } catch {}                 // socket di una chiusura brusca: nessuno lo usa
+  const env = { ...process.env, ELECTRON_RUN_AS_NODE: '1', NODE_NO_WARNINGS: '1',
+    CHATSTORM_SOCKET: SOCK, CANVAS_DATA_DIR: DATA, CHATSTORM_VERSION: app.getVersion() };
   delete env.OPENAI_API_KEY; delete env.CODEX_API_KEY;   // usa l'abbonamento ChatGPT, non una API key a consumo
-  delete env.ELECTRON_RUN_AS_NODE;
-  env.PATH = [path.dirname(node), path.join(HOME, '.local/bin'), '/opt/homebrew/bin', '/usr/local/bin', env.PATH].join(':');
-  fs.mkdirSync(path.join(PROJ, 'data'), { recursive: true });
-  const log = fs.openSync(path.join(PROJ, 'data', 'server.log'), 'a');
-  server = spawn(node, ['--disable-warning=ExperimentalWarning', 'server/index.js'], { cwd: PROJ, env, stdio: ['ignore', log, log] });
+  env.PATH = [env.PATH, '/usr/bin', '/bin', '/usr/sbin', '/sbin'].filter(Boolean).join(':');
+  const logFile = path.join(DATA, 'server.log');
+  try { if (fs.statSync(logFile).size > 2e6) fs.unlinkSync(logFile); } catch {}
+  const log = fs.openSync(logFile, 'a');
+  // il motore gira nel Node incluso in Electron: è lo stesso programma dell'app, avviato in modalità Node
+  server = spawn(process.execPath, [entry], { cwd: DATA, env, stdio: ['ignore', log, log] });
   server.on('exit', () => { server = null; });
   for (let i = 0; i < 80; i++) {
     await sleep(250);
     if (await status()) return;
     if (!server) break;
   }
-  throw new Error('Il server non è partito. I dettagli sono in data/server.log nella cartella del progetto.');
+  throw new Error(`Il motore non è partito. I dettagli sono in ${logFile}`);
 }
 
 const NO_BODY = new Set([101, 204, 205, 304]);
@@ -134,9 +124,17 @@ function createWindow() {
   win.on('closed', () => { win = null; });
 }
 
+// una sola copia aperta: una seconda riporta in primo piano la finestra
+const single = app.requestSingleInstanceLock();
+if (!single) app.quit();
+app.on('second-instance', () => { if (win) { if (win.isMinimized()) win.restore(); win.focus(); } });
+
 app.whenReady().then(async () => {
-  const icon = nativeImage.createFromPath(path.join(__dirname, 'icon.png'));
-  if (process.platform === 'darwin' && !icon.isEmpty()) app.dock.setIcon(icon);
+  if (!single) return;
+  if (!app.isPackaged && process.platform === 'darwin') {       // in sviluppo l'icona va messa a mano
+    const icon = nativeImage.createFromPath(path.join(__dirname, 'icon.png'));
+    if (!icon.isEmpty()) app.dock.setIcon(icon);
+  }
   try {
     protocol.handle(SCHEME, proxy);
     await ensureServer();

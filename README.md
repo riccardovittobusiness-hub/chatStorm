@@ -20,40 +20,44 @@ L'app gira sul tuo computer e usa **ChatGPT tramite Codex di OpenAI**, con il tu
 
 ---
 
-## Requisiti
-- **Un Mac** (Apple Silicon o Intel). chatStorm è un'app desktop: non si usa dal browser.
-- **Node.js 22.13 o più recente** ([nodejs.org](https://nodejs.org)).
-- **Un account ChatGPT Plus o Pro.** Il login si fa una volta durante l'installazione e vale anche se hai già fatto
-  l'accesso nell'app Codex. Le variabili `OPENAI_API_KEY` e `CODEX_API_KEY` vengono ignorate: l'app usa il tuo
-  abbonamento, non una API key a consumo.
+## Scarica e installa
+chatStorm è un'app per Mac che contiene già tutto: non serve installare Node.js né usare il Terminale.
 
-## Installazione
-1. Scarica il progetto (**Code → Download ZIP** su GitHub, oppure `git clone`) e metti la cartella nella tua cartella
-   **Inizio** (per esempio `~/chatStorm`). Non in Download, Scrivania o Documenti: macOS impedisce all'app di leggere
-   quelle cartelle protette.
-2. Fai doppio clic su **`installa.command`**. Installa le dipendenze, apre il login al tuo account ChatGPT,
-   costruisce **chatStorm.app** e la mette nella cartella Applicazioni del tuo utente. Si fa una volta sola.
-3. Apri **chatStorm** dall'icona che trovi sulla **Scrivania** (o da Applicazioni, Launchpad, Spotlight).
-   Se vuoi, trascinala nel Dock.
+1. **Scarica** il file per il tuo Mac dalla pagina delle [versioni](https://github.com/riccardovittobusiness-hub/chatStorm/releases/latest):
+   - Mac con chip Apple (M1 e successivi): [chatStorm-arm64.dmg](https://github.com/riccardovittobusiness-hub/chatStorm/releases/latest/download/chatStorm-arm64.dmg)
+   - Mac con processore Intel: [chatStorm-x64.dmg](https://github.com/riccardovittobusiness-hub/chatStorm/releases/latest/download/chatStorm-x64.dmg)
+2. **Apri** il `.dmg` e trascina **chatStorm** nella cartella **Applicazioni**.
+3. **Primo avvio.** L'app non è ancora firmata con Apple, quindi macOS avvisa che non può verificare lo sviluppatore.
+   Vai in **Impostazioni di Sistema → Privacy e sicurezza**, scorri in basso e premi **Apri comunque**. Si fa una volta sola.
+4. **Accedi con ChatGPT.** Al primo avvio chatStorm ti chiede di collegare il tuo account: premi il pulsante e completa
+   l'accesso nel browser. Serve un abbonamento **ChatGPT Plus o Pro**; l'app usa quello, non una API key a consumo.
 
-chatStorm è un'app vera e propria, con una finestra sua: non apre il browser e non usa porte né indirizzi `localhost`.
-Quando la apri avvia il suo motore locale, che comunica con la finestra attraverso un file privato del tuo utente
-(un socket in `~/Library/Application Support/chatStorm`), e lo spegne quando la chiudi. Solo i link esterni nelle chat
-si aprono nel browser.
+Come funziona l'app:
+- Ha una finestra sua: non apre il browser e non usa porte né indirizzi `localhost`. Quando la apri avvia il suo motore
+  locale, che comunica con la finestra attraverso un file privato del tuo utente, e lo spegne quando la chiudi.
+- **Mappe e chat** stanno in `~/Library/Application Support/chatStorm/data`: restano lì anche quando aggiorni l'app.
+- **Nuove versioni:** all'avvio l'app chiede a GitHub qual è l'ultima versione pubblicata e, se ce n'è una più recente,
+  mostra un pulsante per scaricarla. Per aggiornare si scarica il nuovo `.dmg` e si sostituisce l'app in Applicazioni.
+- Chi aveva installato chatStorm dalla cartella del progetto (`~/chatStorm`) ritrova le sue mappe: al primo avvio l'app le copia.
 
-L'app **si aggiorna da sola**: dopo un aggiornamento del codice basta riaprirla. Se cambiano nome, icona o
-`mac/electron`, all'apertura si ricostruisce in background (`mac/aggiorna-app.sh`, log in `data/app-build.log`),
-si chiude e si riapre aggiornata.
-
-**Per chi sviluppa:** `npm run mock` apre l'interfaccia nel browser (http://localhost:4317) con risposte e icone simulate,
-senza ChatGPT. È l'unico modo in cui chatStorm si apre in un browser.
-
+## Per chi sviluppa
+Servono un Mac e Node.js 22.13 o più recente.
+```bash
+npm install
+npm run mock     # l'interfaccia nel browser (http://localhost:4317) con risposte e icone simulate, senza ChatGPT
+npm run app      # l'app vera, avviata dalla cartella del progetto
+npm run dist     # costruisce dist/chatStorm-<arch>.dmg (mac/build-dmg.sh)
+```
+I `.dmg` pubblicati li costruisce GitHub Actions (`.github/workflows/build.yml`), che prova anche che l'app parta:
+un tag `v1.2.3` uguale alla versione in `package.json` crea la Release con i due file.
+La firma è ancora locale ("ad hoc"): la firma Developer ID e la notarizzazione di Apple andranno aggiunte in `mac/build-dmg.sh`.
 
 ## ChatGPT (Codex)
 Le chat, i riassunti, le icone e gli strumenti della mappa usano **ChatGPT tramite il Codex SDK di OpenAI**
-(`@openai/codex-sdk`), con il login ChatGPT del tuo computer.
+(`@openai/codex-sdk`), incluso nell'app. L'accesso si fa con **Accedi con ChatGPT** (al primo avvio o da Impostazioni)
+e resta sul tuo computer, in `~/.codex`: vale anche se avevi già fatto l'accesso nell'app Codex.
 - In ⚙ Impostazioni → Modello scegli il modello: GPT-5.6 Sol, Terra o Luna, oppure **Altro…** per scriverne un altro.
-- Codex lavora in una cartella vuota in sola lettura (`data/codex-workspace`): non vede l'archivio delle chat.
+- Codex lavora in una cartella vuota in sola lettura: non vede l'archivio delle chat.
 - "Dirama" crea una nuova chat che riceve la conversazione come contesto.
 - Perché solo ChatGPT: OpenAI permette ai progetti open source e a quelli personali che girano in locale di usare
   l'abbonamento ChatGPT dei loro utenti. Anthropic invece chiede ai prodotti costruiti con l'Agent SDK di Claude
@@ -120,14 +124,16 @@ Una mappa, o una sua parte, si può portare ovunque come **un unico JSON** che c
 Premi `?` nell'app per l'elenco delle scorciatoie.
 
 ## Dati e privacy
-- Tutto l'archivio sta in `data/` (`canvas.db` SQLite + `data/icons/`). Per fare un backup copia quella cartella.
-- I messaggi vengono comunque inviati a OpenAI per generare le risposte; la conservazione dipende dalle impostazioni del tuo account ChatGPT.
-- Il server ascolta solo su `127.0.0.1`.
-- Le chiavi dei servizi immagini sono salvate in chiaro in `data/canvas.db`: non condividere quella cartella.
+- Tutto l'archivio sta in `~/Library/Application Support/chatStorm/data` (`canvas.db` SQLite e la cartella `icons`).
+  Per fare un backup copia quella cartella, oppure scarica le mappe in JSON.
+- I messaggi vengono inviati a OpenAI per generare le risposte; la conservazione dipende dalle impostazioni del tuo account ChatGPT.
+- Il motore non apre porte di rete: risponde solo alla finestra dell'app.
+- All'avvio l'app legge da GitHub il numero dell'ultima versione pubblicata. Non invia nessun dato tuo.
+- Le chiavi dei servizi immagini sono salvate in chiaro in `canvas.db`: non condividere quella cartella.
+- Le licenze dei componenti inclusi si leggono nell'app: **Scorciatoie → Licenze**.
 
 ## Struttura
 ```
-installa.command   installazione con doppio clic: dipendenze, login a ChatGPT, app in Applicazioni
 server/index.js    motore locale: API e streaming su un socket privato dell'app (senza porte)
 server/model.js    ponte verso il modello (+ modalità simulata)
 server/codex.js    Codex SDK di OpenAI (ChatGPT)
@@ -135,8 +141,9 @@ server/ai.js       riassunto → prompt icona, collegamenti, temi, sintesi, cont
 server/images.js   Pollinations / Cloudflare
 server/svg.js      pulizia degli SVG disegnati dal modello
 server/portable.js mappe portatili: esporta e importa il JSON con elementi, frecce e chat
+server/update.js   avviso di nuove versioni
 mac/electron/      app desktop (Electron): avvia il motore e mostra chatstorm://app nella sua finestra
-mac/aggiorna-app.sh   ricostruisce l'app in background quando cambia (lo lancia il server)
+mac/build-dmg.sh   costruisce l'app e il .dmg; mac/prova-app.sh prova che parta; mac/licenze.mjs raccoglie le licenze incluse
 server/db.js       SQLite (node:sqlite)
 public/            interfaccia (JavaScript puro, nessuna build)
 ```
@@ -144,6 +151,7 @@ public/            interfaccia (JavaScript puro, nessuna build)
 ## Limiti noti
 - Le chat esistenti su chatgpt.com non sono importabili: questa app ha un suo archivio.
 - I caratteri (Bricolage Grotesque, Fraunces) arrivano da Google Fonts; offline si usano quelli di sistema.
+- Solo per Mac. L'app non è ancora firmata con Apple: al primo avvio serve "Apri comunque" (vedi sopra).
 - Nelle chat Codex lavora in sola lettura in una cartella vuota, con al massimo la ricerca web: niente file o comandi sul tuo computer.
 
 ## Licenza

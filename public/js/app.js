@@ -17,9 +17,6 @@ const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
 
 // ---------- Avvisi ----------
 let toastTimer;
-function appUpdating() {
-  toast(t("Aggiorno l'app desktop: tra un minuto si chiude e si riapre da sola, con il nuovo nome e la nuova icona."), { spin: true, ms: 120000 });
-}
 function toast(msg, { spin = false, error = false, ms = 3500 } = {}) {
   const t = $('toast');
   clearTimeout(toastTimer);
@@ -471,11 +468,9 @@ async function openSettings() {
   updateProviderFields();
   api.providers().then(p => {
     const el = $('codex-status'), c = p.codex;
-    el.className = 'status ' + (c.installed && c.loggedIn ? 'ok' : 'warn');
-    el.textContent = t(c.installing ? 'ChatGPT (Codex): installazione del supporto in corso…'
-      : !c.loggedIn ? 'ChatGPT (Codex): non risulti collegato. Riapri installa.command (o esegui npx codex login nella cartella del progetto) e accedi con il tuo account ChatGPT.'
-      : c.installed ? 'ChatGPT (Codex): pronto, collegato al tuo account ChatGPT.'
-      : 'ChatGPT (Codex): collegato. Il supporto verrà installato al primo utilizzo (serve qualche secondo).');
+    el.className = 'status ' + (c.loggedIn ? 'ok' : 'warn');
+    el.textContent = t(c.loggedIn ? 'ChatGPT: collegato al tuo account.' : 'ChatGPT: non sei ancora collegato. Senza accesso le chat non possono rispondere.');
+    $('login-open').hidden = c.loggedIn;
   }).catch(() => {});
   $('settings-dialog').showModal();
 }
@@ -582,6 +577,11 @@ function wire() {
   document.addEventListener('pointerdown', (e) => { if (!e.target.closest('.dropdown')) closeMenus(); });
 
   $('btn-settings').onclick = openSettings;
+  $('login-start').onclick = startLogin;
+  $('login-later').onclick = closeLogin;
+  $('welcome-dialog').addEventListener('cancel', () => { clearTimeout(loginTimer); api.loginCancel().catch(() => {}); });
+  $('login-open').onclick = () => { $('settings-dialog').close(); showLogin(); };
+  $('show-licenses').onclick = () => { $('help-dialog').close(); showLicenses(); };
   $('btn-help').onclick = () => $('help-dialog').showModal();
   $('settings-form').addEventListener('change', (e) => { if (['imageProvider', 'iconSource'].includes(e.target.name)) updateProviderFields(); });
   $('style-presets').innerHTML = Object.keys(STYLE_PRESETS).map(k => `<button type="button" data-style="${k}">${t(k)}</button>`).join('');
@@ -632,6 +632,56 @@ function wire() {
   });
   window.addEventListener('keyup', (e) => { if (e.key === ' ') { board.space = false; board.canvas.classList.remove('space'); } });
 }
+// ---------- Primo avvio: accesso a ChatGPT, nuove versioni, licenze ----------
+let loginTimer = null;
+function showLogin() {
+  const d = $('welcome-dialog');
+  $('login-status').hidden = true; $('login-link').hidden = true; $('login-start').disabled = false;
+  if (!d.open) d.showModal();
+}
+async function pollLogin() {
+  clearTimeout(loginTimer);
+  if (!$('welcome-dialog').open) return;
+  let st; try { st = await api.loginState(); } catch { st = null; }
+  if (st?.loggedIn) { $('welcome-dialog').close(); toast(t('Collegato a ChatGPT: puoi iniziare')); return; }
+  const status = $('login-status');
+  if (st?.url && /^https:\/\//.test(st.url)) { $('login-link').hidden = false; $('login-link').querySelector('a').href = st.url; }
+  if (st && !st.running) {
+    status.hidden = false; status.className = 'status warn';
+    status.textContent = t('Accesso non completato: {msg}', { msg: st.error || t('riprova') });
+    $('login-start').disabled = false;
+    return;
+  }
+  loginTimer = setTimeout(pollLogin, 1500);
+}
+async function startLogin() {
+  const status = $('login-status');
+  $('login-start').disabled = true;
+  status.hidden = false; status.className = 'status'; status.textContent = t('Ho aperto il browser: completa l\'accesso lì, poi torna qui.');
+  try { await api.loginStart(); pollLogin(); }
+  catch (e) { status.className = 'status warn'; status.textContent = e.message; $('login-start').disabled = false; }
+}
+function closeLogin() { clearTimeout(loginTimer); api.loginCancel().catch(() => {}); $('welcome-dialog').close(); }
+async function showLicenses() {
+  $('licenses-text').textContent = '…';
+  $('licenses-dialog').showModal();
+  try {
+    const l = await api.licenses();
+    $('licenses-text').textContent = [l.license, l.thirdParty].filter(Boolean).join('\n\n' + '='.repeat(70) + '\n\n') || t('Testo non disponibile in questa versione.');
+  } catch (e) { $('licenses-text').textContent = e.message; }
+}
+/** All'avvio dell'app: se manca l'accesso a ChatGPT lo propongo; poi guardo se c'è una versione più recente. */
+function startupChecks(status) {
+  if (status.version) $('app-version').textContent = `chatStorm ${status.version}`;
+  api.providers().then(p => { if (!p.codex.loggedIn) showLogin(); }).catch(() => {});
+  setTimeout(async () => {
+    const u = await api.update().catch(() => null);
+    if (!u?.latest || !/^https:\/\/github\.com\//.test(u.url || '')) return;
+    const pill = $('update-pill');
+    pill.textContent = t('Nuova versione {v}: scarica', { v: u.latest }); pill.href = u.url; pill.hidden = false;
+  }, 4000);
+}
+
 // ---------- Mappe portatili: tutta la mappa (o la selezione) in un JSON che si copia e si incolla ----------
 let lastPointer = null, lastCopy = 0;
 const looksPortable = (text) => typeof text === 'string' && /^\s*\{/.test(text) && text.includes('"chatstorm"');
@@ -706,7 +756,7 @@ async function init() {
   await switchBoard(boardsCache.some(b => b.id === last) ? last : boardsCache[0].id, 0);
   for (const id of await api.busy().catch(() => [])) busyChats.add(id);
   board.render(); renderChatList();
-  if (status.appUpdate === 'building') appUpdating();
+  if (!status.mock) startupChecks(status);
   api.events((ev) => {
     if (ev.type === 'chat-delta') panel.onDelta(ev.data);
     if (ev.type === 'chat-busy') {
@@ -715,7 +765,6 @@ async function init() {
       panel.onBusy(ev.data);
     }
     if (ev.type === 'chat') chatUpdated(ev.data);
-    if (ev.type === 'app-update') appUpdating();
     if (ev.type === 'chat-deleted') {
       chats.delete(ev.data.id);
       board.removeChatEverywhere(ev.data.id);

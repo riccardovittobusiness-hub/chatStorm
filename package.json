@@ -1,18 +1,25 @@
 {
   "name": "chatstorm",
-  "version": "0.1.0",
+  "productName": "chatStorm",
+  "version": "1.0.0",
   "description": "Lavagna per brainstorming: ogni chat con ChatGPT (via Codex) è un'icona su una mappa",
   "type": "module",
+  "main": "mac/electron/main.cjs",
   "private": true,
   "engines": {
     "node": ">=22.13"
   },
   "scripts": {
-    "start": "node --disable-warning=ExperimentalWarning server/index.js",
-    "mock": "node --disable-warning=ExperimentalWarning server/index.js --mock"
+    "app": "electron .",
+    "mock": "node --disable-warning=ExperimentalWarning server/index.js --mock",
+    "dist": "bash mac/build-dmg.sh"
   },
   "dependencies": {
     "@openai/codex-sdk": "latest"
+  },
+  "devDependencies": {
+    "electron": "^45.3.0",
+    "@electron/packager": "^20.3.0"
   },
   "license": "PolyForm-Noncommercial-1.0.0",
   "author": "Riccardo Vitto, Ci siamo (https://www.cisiamoagency.com)"

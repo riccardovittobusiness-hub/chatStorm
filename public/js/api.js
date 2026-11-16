@@ -34,6 +34,12 @@ export const api = {
   summarize: (id) => req('POST', `/api/chats/${id}/summarize`),
   icon: (id, refreshPrompt, mode) => req('POST', `/api/chats/${id}/icon`, { refreshPrompt, mode }),
 
+  loginState: () => req('GET', '/api/codex/login'),
+  loginStart: () => req('POST', '/api/codex/login'),
+  loginCancel: () => req('DELETE', '/api/codex/login'),
+  update: () => req('GET', '/api/update'),
+  licenses: () => req('GET', '/api/licenses'),
+
   exportMap: (doc) => req('POST', '/api/export', doc),
   importMap: (data) => req('POST', '/api/import', { data }),
 

@@ -1,12 +1,11 @@
-// Ponte verso ChatGPT tramite il Codex SDK di OpenAI (usa il login ChatGPT di Codex sul tuo computer).
+// Ponte verso ChatGPT tramite il Codex SDK di OpenAI. Codex viaggia dentro l'app: l'accesso si fa una volta
+// con il proprio account ChatGPT (pulsante "Accedi con ChatGPT") e resta nel computer, in ~/.codex.
 import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync } from 'node:fs';
-import { join } from 'node:path';
+import { createRequire } from 'node:module';
+import { dirname, join } from 'node:path';
 import { homedir } from 'node:os';
-import { fileURLToPath } from 'node:url';
 import { DATA_DIR } from './db.js';
-
-const ROOT = fileURLToPath(new URL('..', import.meta.url));
 
 // Modelli disponibili in Codex con l'accesso ChatGPT (dal 14 ottobre 2026 gpt-5.5 è sostituito dalla famiglia 5.6)
 export const CODEX_MODELS = [
@@ -14,44 +13,72 @@ export const CODEX_MODELS = [
   { value: 'gpt-5.6-terra', displayName: 'GPT-5.6 Terra', description: 'equilibrato' },
   { value: 'gpt-5.6-luna', displayName: 'GPT-5.6 Luna', description: 'veloce, consuma meno' },
 ];
-const SDK_DIR = join(ROOT, 'node_modules', '@openai', 'codex-sdk');
 // Cartella vuota in sola lettura per Codex: non vede l'archivio delle chat né le chiavi
 const WORKDIR = join(DATA_DIR, 'codex-workspace');
 mkdirSync(WORKDIR, { recursive: true });
 let sdkPromise = null;
-let installing = null;
 
-export function codexStatus() {
-  const home = process.env.CODEX_HOME || join(homedir(), '.codex');
-  return { installed: existsSync(SDK_DIR), loggedIn: existsSync(join(home, 'auth.json')), installing: !!installing };
+const TRIPLES = { 'darwin-arm64': 'aarch64-apple-darwin', 'darwin-x64': 'x86_64-apple-darwin', 'linux-x64': 'x86_64-unknown-linux-musl', 'linux-arm64': 'aarch64-unknown-linux-musl' };
+/** Il programma Codex incluso con l'SDK, per questo sistema (stessa ricerca che fa l'SDK). */
+export function codexBinary() {
+  try {
+    const key = `${process.platform}-${process.arch}`;
+    const codexPkg = createRequire(import.meta.url).resolve('@openai/codex/package.json');
+    const platformPkg = createRequire(codexPkg).resolve(`@openai/codex-${key}/package.json`);
+    const bin = join(dirname(platformPkg), 'vendor', TRIPLES[key], 'bin', 'codex');
+    return existsSync(bin) ? bin : null;
+  } catch { return null; }
+}
+const authFile = () => join(process.env.CODEX_HOME || join(homedir(), '.codex'), 'auth.json');
+function cleanEnv() {
+  const env = { ...process.env };
+  delete env.OPENAI_API_KEY;            // usa il login ChatGPT (abbonamento), non una API key a consumo
+  delete env.CODEX_API_KEY;
+  delete env.ELECTRON_RUN_AS_NODE;      // riguarda solo il motore, non i programmi che avvia
+  return env;
 }
 
-/** Se il supporto Codex non è installato, lo installa (una volta) con npm nella cartella del progetto. */
-function installSdk() {
-  installing ||= new Promise((resolve, reject) => {
-    console.log('[codex] installo @openai/codex-sdk…');
-    const p = spawn('npm', ['install', '--no-audit', '--no-fund', '@openai/codex-sdk'], { cwd: ROOT, stdio: 'inherit', env: process.env });
-    p.on('error', reject);
-    p.on('exit', (code) => code === 0 ? resolve() : reject(new Error(`Installazione del supporto Codex non riuscita (npm, codice ${code})`)));
-  }).finally(() => { installing = null; });
-  return installing;
+export function codexStatus() {
+  return { installed: !!codexBinary(), loggedIn: existsSync(authFile()) };
+}
+
+// ---------- Accesso con ChatGPT: avvia "codex login", che apre il browser e aspetta la conferma ----------
+let login = null;      // { proc, out, url, done, ok }
+const ANSI = /\x1b\[[0-9;?]*[ -\/]*[@-~]/g;
+export function codexLoginState() {
+  const st = codexStatus();
+  return { ...st, running: !!login && !login.done, url: login?.url || null,
+    error: login?.done && !login.ok && !st.loggedIn ? (login.out.trim().split('\n').pop() || 'Accesso non completato').slice(0, 300) : null };
+}
+export function codexLoginStart() {
+  if (login && !login.done) return codexLoginState();
+  const bin = codexBinary();
+  if (!bin) throw Object.assign(new Error('Il componente Codex non è presente in questa installazione: scarica di nuovo chatStorm.'), { status: 500 });
+  const proc = spawn(bin, ['login'], { env: cleanEnv(), stdio: ['ignore', 'pipe', 'pipe'] });
+  const cur = login = { proc, out: '', url: null, done: false, ok: false };
+  const onData = (d) => {
+    cur.out = (cur.out + String(d).replace(ANSI, '')).slice(-4000);
+    const m = cur.out.match(/https:\/\/[^\s"'<>]+/);                // la pagina di accesso, se il browser non si apre da solo
+    if (m) cur.url = m[0];
+  };
+  proc.stdout.on('data', onData); proc.stderr.on('data', onData);
+  proc.on('error', (e) => { cur.done = true; cur.out += `\n${e.message}`; });
+  proc.on('exit', (code) => { cur.done = true; cur.ok = code === 0; });
+  return codexLoginState();
+}
+export function codexLoginCancel() {
+  if (login && !login.done) { try { login.proc.kill('SIGTERM'); } catch {} }
+  login = null;
+  return codexLoginState();
 }
 
 async function loadSdk() {
-  if (!sdkPromise) {
-    sdkPromise = (async () => {
-      if (!existsSync(SDK_DIR)) await installSdk();
-      return import('@openai/codex-sdk');
-    })().catch((e) => { sdkPromise = null; throw e; });
-  }
+  sdkPromise ||= import('@openai/codex-sdk').catch((e) => { sdkPromise = null; throw e; });
   return sdkPromise;
 }
 
 function client(Codex) {
-  const env = { ...process.env };
-  delete env.OPENAI_API_KEY;            // usa il login ChatGPT (abbonamento), non una API key a consumo
-  delete env.CODEX_API_KEY;
-  return new Codex({ env });
+  return new Codex({ env: cleanEnv() });
 }
 function threadOptions(settings) {
   const o = { workingDirectory: WORKDIR, skipGitRepoCheck: true, sandboxMode: 'read-only', networkAccessEnabled: settings.webTools === 'true' };
@@ -60,7 +87,7 @@ function threadOptions(settings) {
 }
 function friendly(e) {
   const m = String(e?.message || e);
-  if (/log ?in|auth|unauthori[sz]ed|401/i.test(m)) return new Error('Codex non è collegato al tuo account ChatGPT. Riapri installa.command (o esegui npx codex login nella cartella del progetto), accedi con ChatGPT e riprova.');
+  if (/log ?in|auth|unauthori[sz]ed|401/i.test(m)) return new Error('chatStorm non è collegato al tuo account ChatGPT. Apri Impostazioni, premi "Accedi con ChatGPT" e riprova.');
   return e instanceof Error ? e : new Error(m);
 }
 
