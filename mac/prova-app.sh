@@ -7,16 +7,20 @@ APP="$1"; ONLY="${2:-}"
 BIN="$APP/Contents/MacOS/chatStorm"; RES="$APP/Contents/Resources/app"
 fail() { echo "ERRORE: $1"; [ -f "${LOG:-}" ] && { echo "--- log ---"; tail -40 "$LOG"; }; exit 1; }
 wait_sock() { for i in $(seq 1 240); do [ -S "$1" ] && return 0; sleep 0.5; done; return 1; }
+get() { curl -sf --max-time 5 --unix-socket "$1" "http://chatstorm$2"; }    # il risultato va in una variabile: "curl | grep -q" con pipefail fallisce a caso
 check() {                       # $1 = socket
-  ST=$(curl -sf --max-time 5 --unix-socket "$1" http://chatstorm/api/status) || fail "il motore non risponde"
+  ST=$(get "$1" /api/status) || fail "il motore non risponde"
   echo "stato: $(echo "$ST" | head -c 160)"
-  echo "$ST" | grep -q '"version":"[0-9]' || fail "versione mancante nello stato"
-  PR=$(curl -sf --max-time 5 --unix-socket "$1" http://chatstorm/api/providers) || fail "providers non risponde"
+  [[ "$ST" == *'"version":"'[0-9]* ]] || fail "versione mancante nello stato"
+  PR=$(get "$1" /api/providers) || fail "providers non risponde"
   echo "codex: $PR"
-  echo "$PR" | grep -q '"installed":true' || fail "il programma Codex non risulta incluso"
-  curl -sf --max-time 5 --unix-socket "$1" http://chatstorm/ | grep -q "chatStorm" || fail "l'interfaccia non viene servita"
-  curl -sf --max-time 5 --unix-socket "$1" http://chatstorm/api/licenses | grep -q "PolyForm" || fail "licenze mancanti"
-  curl -sf --max-time 5 --unix-socket "$1" http://chatstorm/api/boards | grep -q '"id"' || fail "l'archivio non funziona"
+  [[ "$PR" == *'"installed":true'* ]] || fail "il programma Codex non risulta incluso"
+  UI=$(get "$1" /) || fail "l'interfaccia non risponde"
+  [[ "$UI" == *chatStorm* ]] || fail "l'interfaccia non viene servita"
+  LI=$(get "$1" /api/licenses) || fail "licenze non rispondono"
+  [[ "$LI" == *PolyForm* ]] || fail "licenze mancanti"
+  BO=$(get "$1" /api/boards) || fail "l'archivio non risponde"
+  [[ "$BO" == *'"id"'* ]] || fail "l'archivio non funziona"
 }
 [ -x "$BIN" ] || fail "non trovo $BIN"
 [ -f "$RES/server/index.js" ] || { ls -la "$APP/Contents/Resources"; fail "nell'app manca il motore"; }
@@ -42,7 +46,7 @@ wait_sock "$SOCK" || fail "l'app non ha acceso il motore"
 check "$SOCK"
 # la finestra ha caricato l'interfaccia ed è collegata al motore?
 for i in $(seq 1 60); do
-  curl -sf --max-time 5 --unix-socket "$SOCK" http://chatstorm/api/status | grep -q '"windows":[1-9]' && WIN=1 && break; sleep 1
+  ST=$(get "$SOCK" /api/status) && [[ "$ST" == *'"windows":'[1-9]* ]] && WIN=1 && break; sleep 1
 done
 [ "${WIN:-}" = 1 ] || fail "la finestra non si è collegata al motore"
 echo "finestra collegata"
