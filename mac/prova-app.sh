@@ -19,7 +19,9 @@ check() {                       # $1 = socket
   curl -sf --max-time 5 --unix-socket "$1" http://chatstorm/api/boards | grep -q '"id"' || fail "l'archivio non funziona"
 }
 [ -x "$BIN" ] || fail "non trovo $BIN"
-CODEX=$(ls "$RES"/node_modules/@openai/codex-darwin-*/vendor/*/bin/codex | head -1)
+[ -f "$RES/server/index.js" ] || { ls -la "$APP/Contents/Resources"; fail "nell'app manca il motore"; }
+CODEX=$(ls "$RES"/node_modules/@openai/codex-darwin-*/vendor/*/bin/codex 2>/dev/null | head -1)
+[ -n "$CODEX" ] || fail "nell'app manca il programma Codex"
 echo "== Codex incluso: $("$CODEX" --version 2>&1 | head -1)"
 
 echo "== 1. motore con il Node dell'app"

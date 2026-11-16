@@ -31,9 +31,11 @@ node mac/licenze.mjs "$STAGE" > "$STAGE/LICENZE-TERZE-PARTI.txt"
 
 echo "-- 2/4  app (Electron $ELECTRON_VERSION)"
 npx --no-install electron-packager "$STAGE" chatStorm --platform=darwin --arch="$ARCH" \
-  --electron-version="$ELECTRON_VERSION" --icon="$ROOT/mac/AppIcon.icns" --out="$OUT" --overwrite --no-prune \
+  --electron-version="$ELECTRON_VERSION" --icon="$ROOT/mac/AppIcon.icns" --out="$OUT" --overwrite --no-prune --no-asar \
   --app-bundle-id=com.riccardovitto.chatstorm --app-version="$VERSION" \
   --app-category-type=public.app-category.productivity --app-copyright="© 2026 Riccardo Vitto, Ci siamo"
+# il motore e Codex devono stare in una cartella vera (non in un archivio .asar), altrimenti non si possono avviare
+[ -f "$APP/Contents/Resources/app/server/index.js" ] || { echo "L'app non contiene la cartella app:"; ls -la "$APP/Contents/Resources"; exit 1; }
 cp "$BUILT/LICENSE" "$APP/Contents/Resources/LICENSE-electron.txt"
 cp "$BUILT/LICENSES.chromium.html" "$APP/Contents/Resources/"
 
